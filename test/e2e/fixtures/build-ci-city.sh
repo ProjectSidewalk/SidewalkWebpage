@@ -7,8 +7,7 @@
 # out and the seed rows put back (tools/city/setup_new_city.py's dump_schema), and the server restores that dump.
 # Rows an evolution seeded into the donor do not survive that trip unless seed-city-rows.sql writes them, because
 # the clone copies the donor's play_evolutions and so never runs those evolutions itself. The committed template
-# still holds every seeded row, so a suite run on the template alone passes on a schema no launched city has: that
-# is how the tutorial broke on every city onboarded for two months without a red build (#6036).
+# still holds every seeded row, so a suite run on the template alone passes on a schema no launched city has (#6036).
 #
 # HOW IT'S RUN (from the repo root, in CI, with the db container up and sidewalk_teaneck already evolved to HEAD):
 #   bash test/e2e/fixtures/build-ci-city.sh build        clone sidewalk_teaneck into a fresh one via a dump

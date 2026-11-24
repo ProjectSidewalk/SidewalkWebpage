@@ -1123,28 +1123,49 @@ def dump_exclusions(schema):
     return patterns, counts
 
 
+# Written on the set-aside schema, followed by the clean copy's id, so a later run can tell that copy from any other
+# schema that has taken the city's name.
+COPY_NOTE = 'onboarding dump copy '
+
+
 def set_aside_name(schema):
     """Where the local schema waits, QA data and all, while the clean copy borrows its name for the dump."""
     return f'{schema}_set_aside'
 
 
-def put_local_schema_back(schema):
+def put_local_schema_back(schema, copy_is_ours=False):
     """
     Drops the clean copy and gives the set-aside local schema its name back, and lets the city's role log in again.
-    Does nothing when no schema is set aside, so it is safe after a step that failed at any point.
+    With no schema set aside, only the login is restored, so it is safe after a step that failed at any point.
+
+    Args:
+        copy_is_ours: True from the run that made the copy. A later run trusts only a copy whose id the dump step
+                      wrote on the set-aside schema, because anything else under the city's name (a dump imported
+                      after a killed run) may be the only copy of someone's data.
     """
-    aside = db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{set_aside_name(schema)}'")
-    if aside is None:
-        sys.exit(f'error: could not ask the database whether {set_aside_name(schema)} exists. If it does, it is your '
-                 f'local {schema}: drop the schema now named {schema}, rename it back (ALTER SCHEMA '
-                 f'{set_aside_name(schema)} RENAME TO {schema}), then ALTER ROLE {schema} LOGIN.')
-    if aside:
+    aside = set_aside_name(schema)
+    is_aside = db_query(f"SELECT 1 FROM pg_namespace WHERE nspname = '{aside}'")
+    by_hand = (f'Your local {schema} is the schema now named {aside}. Once nothing you need is under the name '
+               f'{schema}: DROP SCHEMA {schema} CASCADE; COMMENT ON SCHEMA {aside} IS NULL; ALTER SCHEMA {aside} '
+               f'RENAME TO {schema}; ALTER ROLE {schema} LOGIN.')
+    if is_aside is None:
+        sys.exit(f'error: could not ask the database whether {aside} exists. If it does: {by_hand}')
+    if is_aside:
+        strangers = '0' if copy_is_ours else db_query(
+            f"SELECT count(*) FROM pg_namespace WHERE nspname = '{schema}' AND oid::text IS DISTINCT FROM "
+            f"(SELECT substring(obj_description(oid, 'pg_namespace') FROM '^{COPY_NOTE}(\\d+)$') "
+            f"FROM pg_namespace WHERE nspname = '{aside}')")
+        if strangers != '0':
+            sys.exit(f'error: {aside} is left from a dump step that was killed, and the schema now named {schema} '
+                     f'is not the copy that step made, so it was not dropped. {by_hand}')
         run_or_exit(['psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', 'postgres', '-d', 'sidewalk', '-c',
                      f'SET client_min_messages = warning; BEGIN; DROP SCHEMA IF EXISTS {schema} CASCADE; '
-                     f'ALTER SCHEMA {set_aside_name(schema)} RENAME TO {schema}; COMMIT;'],
-                    f'putting the local {schema} back under its name failed',
-                    f'Your data is in {set_aside_name(schema)}; rerun with --dump-only, which tries again first.')
-    docker_db('psql', '-q', '-U', 'postgres', '-d', 'sidewalk', '-c', f'ALTER ROLE {schema} LOGIN', check=True)
+                     f'COMMENT ON SCHEMA {aside} IS NULL; ALTER SCHEMA {aside} RENAME TO {schema}; COMMIT;'],
+                    f'putting the local {schema} back under its name failed', by_hand)
+    # A city that has not been cloned yet has no role.
+    docker_db('psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', 'postgres', '-d', 'sidewalk', '-c',
+              f"DO $$ BEGIN IF EXISTS (SELECT FROM pg_roles WHERE rolname = '{schema}') THEN "
+              f'ALTER ROLE {schema} LOGIN; END IF; END $$', check=True)
 
 
 def dump_schema(schema):
@@ -1175,30 +1196,34 @@ def dump_schema(schema):
     dump_path = f'/opt/{schema}-dump'
     first_pass = f'{dump_path}.first-pass'
     psql = ('psql', '-v', 'ON_ERROR_STOP=1', '-q', '-U', 'postgres', '-d', 'sidewalk')
+    set_aside = False
     try:
         docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema,
                   *[f'--exclude-table-data={pattern}' for pattern in patterns], '-f', first_pass, check=True)
         # An app running as the city would write into the copy, and those rows would ship. So the role cannot log
-        # in while the copy has the name; the app's connections drop and come back by themselves afterwards.
-        run_or_exit([*psql, '-c',
-                     f"SET lock_timeout = '30s'; ALTER ROLE {schema} NOLOGIN; "
-                     'DO $$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity '
-                     f"WHERE usename = '{schema}'; END $$; "
-                     f'ALTER SCHEMA {schema} RENAME TO {set_aside_name(schema)};'],
+        # in while the copy has the name; the app's connections drop and come back by themselves afterwards. The
+        # lock is its own statement so it is committed before the connections are dropped.
+        run_or_exit([*psql, '-c', f'ALTER ROLE {schema} NOLOGIN', '-c',
+                     "SET lock_timeout = '30s'; DO $$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity "
+                     f"WHERE usename = '{schema}'; END $$; ALTER SCHEMA {schema} RENAME TO {set_aside_name(schema)};"],
                     f'setting the local {schema} aside failed', 'Nothing was changed: rerun with --dump-only.')
+        set_aside = True
         run_or_exit(['pg_restore', '-U', 'sidewalk', '-Fc', '-d', 'sidewalk', first_pass],
                     f'restoring the first-pass dump as the clean copy of {schema} failed',
                     'Your local schema was put back as it was: fix the cause and rerun with --dump-only.')
         # The one value a QA walk changes in a table the dump keeps: walking a street moves its priority off the 1
         # the fill assigns. The reset lands on the copy, so the local schema keeps what the walk did.
-        run_or_exit([*psql, '-v', f'schema={schema}', '-f', '/opt/scripts/seed-city-rows.sql',
+        run_or_exit([*psql, '-v', f'schema={schema}',
+                     '-c', f"DO $$ BEGIN EXECUTE format('COMMENT ON SCHEMA {set_aside_name(schema)} IS %L', "
+                           f"'{COPY_NOTE}' || '{schema}'::regnamespace::oid); END $$",
+                     '-f', '/opt/scripts/seed-city-rows.sql',
                      '-c', f'UPDATE {schema}.street_edge_priority SET priority = 1 WHERE priority <> 1'],
                     f'seeding the clean copy of {schema} failed',
                     'Your local schema was put back as it was: fix the cause and rerun with --dump-only.')
         docker_db('pg_dump', '-U', 'sidewalk', '-d', 'sidewalk', '-Fc', '-n', schema, '-f', dump_path, check=True)
     finally:
         docker_db('rm', '-f', first_pass)
-        put_local_schema_back(schema)
+        put_local_schema_back(schema, copy_is_ours=set_aside)
     listing = docker_db('pg_restore', '--list', dump_path, capture_output=True, text=True, check=True)
     n_objects = sum(1 for line in listing.stdout.split('\n') if line and not line.startswith(';'))
     size = docker_db('stat', '-c', '%s', dump_path, capture_output=True, text=True, check=True).stdout.strip()
@@ -1339,7 +1364,9 @@ def main(argv=None):
         if exists is None:
             sys.exit(f'error: the {DB_CONTAINER} container could not be asked; is it running (make docker-up / '
                      'make dev)?')
-        if not exists:
+        # Before the check: after a killed dump step the city may be under its set-aside name only.
+        put_local_schema_back(schema)
+        if not schema_exists(schema):
             sys.exit(f'error: there is no schema {schema} to dump; run without --dump-only to build it.')
         require_mounted(REPO_ROOT / 'db' / 'scripts' / 'fill-new-schema.sh', '/opt/scripts/fill-new-schema.sh')
         streets = street_count(schema)

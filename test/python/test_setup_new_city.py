@@ -540,7 +540,7 @@ def test_onboarding_tables_are_exactly_what_the_scripts_write():
 
 # Every evolution that seeds literal rows into a table the dump leaves out, with where a launched city's rows come
 # from instead. Keyed by evolution, not by table: one evolution can seed rows a launched city needs into the same
-# table another evolution only migrated, and a per-table entry let 360's tutorial pano rows pass as the latter (#6036).
+# table another evolution only migrated (#6036).
 SEEDS_LEFT_OUT_OF_THE_DUMP = {
     (2, 'role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
     (2, 'user_role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
@@ -651,12 +651,18 @@ def test_dump_schema_seeds_a_clean_copy_and_dumps_that(monkeypatch):
     back = step('RENAME TO sidewalk_bayonne;')
     assert first < aside < restore < seed < final < back
     assert '--exclude-table-data' in joined[first] and '--exclude-table-data' not in joined[final]
-    assert 'ALTER ROLE sidewalk_bayonne NOLOGIN' in joined[aside] and 'pg_terminate_backend' in joined[aside]
+    # The lock is committed by itself first, or an app could reconnect between the drop and the rename.
+    lock = calls[aside].index('ALTER ROLE sidewalk_bayonne NOLOGIN')
+    assert 'pg_terminate_backend' in calls[aside][lock + 2] and calls[aside][lock + 1] == '-c'
     assert joined[restore].endswith('/opt/sidewalk_bayonne-dump.first-pass')
     assert '-v schema=sidewalk_bayonne' in joined[seed]
+    assert joined[seed].index('COMMENT ON SCHEMA sidewalk_bayonne_set_aside') < joined[seed].index('seed-city-rows')
     assert 'UPDATE sidewalk_bayonne.street_edge_priority SET priority = 1' in joined[seed]
     assert 'DROP SCHEMA IF EXISTS sidewalk_bayonne CASCADE' in joined[back]
-    assert 'ALTER ROLE sidewalk_bayonne LOGIN' in joined[-3]
+    assert 'COMMENT ON SCHEMA sidewalk_bayonne_set_aside IS NULL' in joined[back]
+    # A city that has not been cloned yet has no role, and the put-back runs before the clone too.
+    assert "IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'sidewalk_bayonne') THEN ALTER ROLE" in joined[-3]
+    assert not any('obj_description' in cmd for cmd in joined)
     assert any(cmd.endswith('rm -f /opt/sidewalk_bayonne-dump.first-pass') for cmd in joined)
 
 
@@ -675,17 +681,23 @@ def test_dump_schema_puts_the_local_schema_back_whatever_happens(monkeypatch):
     assert any('RENAME TO sidewalk_bayonne;' in cmd for cmd in joined)
     assert 'ALTER ROLE sidewalk_bayonne LOGIN' in joined[-1]
     assert not any('seed-city-rows.sql' in cmd for cmd in joined)
-    # A killed run left it aside: put back first, then the catalog is read.
-    calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{"_set_aside'": [(0, '1\n'), (0, '')]})
+    # A killed run left it aside, with its copy's id noted: put back first, then the catalog is read.
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'),
+                      **{'obj_description': (0, '0\n'), "_set_aside'": [(0, '1\n'), (0, '')]})
     snc.dump_schema('sidewalk_bayonne')
     joined = _joined(calls)
     assert next(i for i, cmd in enumerate(joined) if 'RENAME TO sidewalk_bayonne;' in cmd) < \
         next(i for i, cmd in enumerate(joined) if 'relkind' in cmd)
     # The rename back is refused: the message says where the data is.
-    _dump_env(monkeypatch, (0, 'label|0\n'),
-              **{"_set_aside'": (0, '1\n'), 'RENAME TO sidewalk_bayonne;': (1, '', 'ERROR:  no\n')})
+    _dump_env(monkeypatch, (0, 'label|0\n'), **{'obj_description': (0, '0\n'), "_set_aside'": (0, '1\n'),
+                                                'RENAME TO sidewalk_bayonne;': (1, '', 'ERROR:  no\n')})
     with pytest.raises(SystemExit, match='(?s)putting the local sidewalk_bayonne back.*sidewalk_bayonne_set_aside'):
         snc.dump_schema('sidewalk_bayonne')
+    # Something else has the city's name (a dump imported since): it may be someone's only copy, so it stays.
+    calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{'obj_description': (0, '1\n'), "_set_aside'": (0, '1\n')})
+    with pytest.raises(SystemExit, match='(?s)not the copy that step made.*DROP SCHEMA sidewalk_bayonne CASCADE'):
+        snc.dump_schema('sidewalk_bayonne')
+    assert not any('DROP SCHEMA' in cmd or 'pg_dump' in cmd for cmd in _joined(calls))
     # The database cannot be asked: say what to check by hand rather than guess.
     calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{"_set_aside'": (1, '')})
     with pytest.raises(SystemExit, match='(?s)could not ask.*RENAME TO sidewalk_bayonne.*LOGIN'):
@@ -1251,7 +1263,8 @@ def _stub_steps(monkeypatch, repo_copy):
 
 # The docker answers for a first, clean run: containers up and mounting this checkout, no schema yet, the dev city
 # is the donor, a fresh clone holds only the tutorial street, and neither a scan nor the grades have been imported.
-_FRESH_DB = {'true': (0, ''), 'pg_namespace': (0, ''), 'printenv DATABASE_USER': (0, 'sidewalk_richmond\n'),
+_FRESH_DB = {"_set_aside'": (0, ''), 'true': (0, ''), 'pg_namespace': (0, ''),
+             'printenv DATABASE_USER': (0, 'sidewalk_richmond\n'),
              'md5sum /opt/onboarding': (0, f'{_QGIS_MD5}  qgis_tables.sql\n'),
              'md5sum /opt/scripts': (0, f'{_FILL_MD5}  fill-new-schema.sh\n'),
              'street_edge': (0, '1\n'), 'street_imagery': (0, '0\n'), 'street_gradient': (0, '0\n')}
