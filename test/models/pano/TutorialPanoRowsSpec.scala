@@ -4,12 +4,16 @@ import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import service.PanoDataService.LiveImageryTtlDays
 import util.{RolledBackDb, SidewalkSpec}
+
+import java.time.OffsetDateTime
 
 /**
  * Pins `PanoDataTable.insertTutorialPanosIfMissing`, which gives a city launched from a dump the tutorial panos' rows
  * with its first tutorial label (#6036): both rows with evolution 360's values, nothing on a second call, and an
- * existing row left exactly as it was.
+ * existing row left exactly as it was. And since the rows it writes are freshly checked, the reuse lookup must still
+ * leave them unanswered: their source, not their age, is what keeps them from passing as live imagery.
  *
  * Each test runs against an empty scratch copy of pano_data: a temp table of the same name, which the session's
  * search_path finds first, so the result doesn't depend on whether the connected city already has the rows. The
@@ -72,6 +76,19 @@ class TutorialPanoRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
 
       written mustBe Seq("afterWalkTutorial")
       after mustBe before
+    }
+
+    "leave the reuse lookup with no answer for them, fresh as their last_checked is" in {
+      val statuses = runRolledBack(for {
+        _        <- scratchPanoData
+        _        <- panoDataTable.insertTutorialPanosIfMissing
+        statuses <- panoDataTable.getReusableImageryStatus(
+          PanoDataTable.TutorialPanoIds,
+          OffsetDateTime.now.minusDays(LiveImageryTtlDays)
+        )
+      } yield statuses)
+
+      statuses mustBe empty
     }
   }
 }
