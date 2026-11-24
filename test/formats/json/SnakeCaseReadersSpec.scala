@@ -5,6 +5,7 @@ import models.audit.CoveredRange
 import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
+import models.user.{NewsEmailOptOutSource, NewsEmailSuppression}
 import models.utils.{AiTagConfidence, ClusteringThreshold, ExcludedTag}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
@@ -211,6 +212,10 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     check(
       """{"on_leaderboard":false,"public_profile":true}""",
       SettingsSubmission(None, false, true, None, None, None, None)
+    )
+    check(
+      s"""{"email":"a@example.test","reason":"complaint","at":$ts}""",
+      NewsEmailSuppression("a@example.test", NewsEmailOptOutSource.Complaint, t)
     )
   }
 

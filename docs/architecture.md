@@ -73,15 +73,17 @@ The backend follows a consistent layering: **routes → Controller → Service �
   people's scores from `/adminapi/validatorReliability`.
 - **Newsletter email (#5864)** — everyone gets project news unless `user_settings.news_email_opt_out_at` is set, with
   `news_email_opt_out_source` (`NewsEmailOptOutSource`) saying why: Settings, the unsubscribe link, a sign-up box
-  turned off or left off, the never-consented backfill, or (once the mailing-service sync lands) its unsubscribe, a
-  bounce, or a spam complaint. `news_email_consented_at` is when the user ticked the box themselves, the proof of
-  consent EU-style rules ask for; the backfill never overrides it, the sync must never re-subscribe a `complaint`, and
-  a future email-change flow should clear a `bounce`. The sign-up box starts checked only in the opt-out-law countries
-  in `news-email-opt-out-countries`, since a pre-ticked box isn't consent elsewhere. The unsubscribe link is
-  `/unsubscribe?token=`, the user id signed by `NewsEmailTokenService` with the app secret (shared by every city, so
-  a link verifies anywhere); its GET only confirms, and its `nocsrf` POST opts out and is what `List-Unsubscribe-Post`
-  points at. Admin → Management exports the send list (`Role.NEWS_EMAIL_ROLES` accounts not opted out, each with its
-  unsubscribe link); the mailing service never holds the list of record. Accounts from before the box that first
+  turned off or left off, the never-consented backfill, a bounce, or a spam complaint. `news_email_consented_at` is
+  when the user ticked the box themselves, the proof of consent EU-style rules ask for; the backfill never overrides
+  it. The sign-up box starts checked only in the opt-out-law countries in `news-email-opt-out-countries`, since a
+  pre-ticked box isn't consent elsewhere. The unsubscribe link is `/unsubscribe?token=`, the user id signed by
+  `NewsEmailTokenService` with the app secret (shared by every city, so a link verifies anywhere); its GET only
+  confirms, and its `nocsrf` POST opts out and is what `List-Unsubscribe-Post` points at. Our database is the list of
+  record and Amazon SES only sends: Admin → Management exports the send list (`Role.NEWS_EMAIL_ROLES` accounts not
+  opted out, each with its unsubscribe link) and imports SES's suppression list afterwards, both through the scripts
+  in sidewalk-server-tools (`newsletter.md` there is the runbook). The import writes `bounce` and `complaint` by
+  address; a `complaint` replaces any other reason and locks the Settings box, since that address must never be
+  mailed again, and a future email-change flow should clear a `bounce`. Accounts from before the box that first
   signed up in a consent-law country were opted out by `tools/one-off/5864-opt-out-consent-country-signups.sql`,
   stamped at their sign-up time, so ticking the Settings box is their consent. Password resets are never opt-out-able.
 - **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries

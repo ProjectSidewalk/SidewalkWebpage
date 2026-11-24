@@ -1,13 +1,15 @@
 package models.user
 
 import models.utils.{NamedEnum, PgEnumCompanion}
+import play.api.libs.json.Reads
 
 /**
  * Why an account stopped getting project news by email (#5864), stored as `news_email_opt_out_source` in
  * `user_settings` beside when it happened. Settings and the unsubscribe link are the user's own choice. The two
  * sign-up values split a box turned off from one left off where it starts unchecked. `NeverConsented` is the
- * backfill for older accounts from consent-law countries. The last three will come from the mailing service: its own
- * unsubscribe link, a bounced address, and a spam report, which must never be re-mailed.
+ * backfill for older accounts from consent-law countries. `Bounce` and `Complaint` are imported from the mail sender's
+ * suppression list: a dead address, and a spam report, which must never be re-mailed. `MailingService` is for a
+ * sender that keeps its own unsubscribe list, which Amazon SES doesn't.
  */
 enum NewsEmailOptOutSource(val name: String) extends NamedEnum {
   case Settings         extends NewsEmailOptOutSource("settings")
@@ -20,4 +22,8 @@ enum NewsEmailOptOutSource(val name: String) extends NamedEnum {
   case Complaint        extends NewsEmailOptOutSource("complaint")
 }
 
-object NewsEmailOptOutSource extends PgEnumCompanion[NewsEmailOptOutSource]("news_email_opt_out_source")
+object NewsEmailOptOutSource extends PgEnumCompanion[NewsEmailOptOutSource]("news_email_opt_out_source") {
+
+  /** Reads the two reasons a suppression list can give, so an import can't write a reason only a user may set. */
+  val suppressionReads: Reads[NewsEmailOptOutSource] = readsAmong(Seq(Bounce, Complaint))
+}

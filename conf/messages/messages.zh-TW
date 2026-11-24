@@ -914,6 +914,7 @@ dashboard.settings.service.hours.link = 服務時數如何運作
 dashboard.settings.news.email = 電子郵件更新
 dashboard.settings.news.email.toggle = 寄送 Project Sidewalk 的最新消息給我
 dashboard.settings.news.email.help = 不定期的專案消息，每封都附有取消訂閱連結。與您帳戶有關的郵件（例如重設密碼）一律會寄送。
+dashboard.settings.news.email.blocked = 您曾將我們的郵件回報為垃圾郵件，因此我們無法再寄送專案消息給您。
 dashboard.settings.team = 團隊
 dashboard.settings.team.label = 您的團隊
 dashboard.settings.team.help = 加入團隊或班級，一起標記並出現在團隊排行榜上。

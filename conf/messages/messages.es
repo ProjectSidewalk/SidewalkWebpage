@@ -851,6 +851,7 @@ dashboard.settings.service.hours.link = Cómo funcionan las horas de servicio
 dashboard.settings.news.email = Novedades por correo
 dashboard.settings.news.email.toggle = Enviarme novedades sobre Project Sidewalk
 dashboard.settings.news.email.help = Novedades ocasionales sobre el proyecto, cada una con un enlace para darse de baja. Los correos sobre tu cuenta, como el restablecimiento de contraseña, siempre llegan.
+dashboard.settings.news.email.blocked = Marcaste uno de nuestros correos como spam, así que ya no podemos enviarte novedades del proyecto.
 dashboard.settings.team = Equipo
 dashboard.settings.team.label = Tu equipo
 dashboard.settings.team.help = Únete a un equipo o clase para mapear en conjunto y aparecer en la tabla de equipos.

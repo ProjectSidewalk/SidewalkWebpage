@@ -25,6 +25,11 @@ object UserFormats {
   given settingsSubmissionReads: Reads[SettingsSubmission] =
     Json.reads[SettingsSubmission].map(s => s.copy(username = s.username.map(_.trim)))
 
+  given newsEmailSuppressionReads: Reads[NewsEmailSuppression] = {
+    given Reads[NewsEmailOptOutSource] = NewsEmailOptOutSource.suppressionReads
+    Json.reads[NewsEmailSuppression]
+  }
+
   given sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = Json.writes[SidewalkUserWithRole]
 
   given userStatsWrites: Writes[UserStatsForAdminPage] = Json.writes[UserStatsForAdminPage]

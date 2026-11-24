@@ -1,10 +1,12 @@
 package controllers
 
 import controllers.base.*
+import formats.json.UserFormats.newsEmailSuppressionReads
 import models.api.ApiModelUtils
 import models.auth.{DefaultEnv, WithAdmin}
-import models.user.NewsEmailOptOutSource
+import models.user.{NewsEmailOptOutSource, NewsEmailSuppression}
 import play.api.Configuration
+import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.Result
 import play.filters.csrf.CSRFAddToken
 import play.silhouette.api.Silhouette
@@ -13,7 +15,7 @@ import service.{AuthenticationService, ConfigService, NewsEmailTokenService, Use
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-/** The newsletter's unsubscribe link and the admin export of who it may go to (#5864). */
+/** The newsletter's unsubscribe link, the admin export of who it may go to, and the bounce import (#5864). */
 @Singleton
 class NewsEmailController @Inject() (
     cc: CustomControllerComponents,
@@ -98,4 +100,34 @@ class NewsEmailController @Inject() (
         .withHeaders(CONTENT_DISPOSITION -> "attachment; filename=\"news-email-recipients.csv\"")
     }
   }
+
+  /**
+   * Opts out the accounts behind the mail sender's suppression list, as `sync-news-suppressions.py` in
+   * sidewalk-server-tools exports it. A bad row refuses the whole file, and a repeat import changes nothing.
+   */
+  def importNewsEmailSuppressions =
+    cc.securityService.SecuredAction(WithAdmin(), parse.json(NewsEmailController.MaxSuppressionBytes)) {
+      implicit request =>
+        request.body.validate[Seq[NewsEmailSuppression]] match {
+          case JsError(errors) =>
+            // The first bad row and field is enough to fix the file by.
+            val (path, problems) = errors.head
+            val reason           = problems.flatMap(_.messages).mkString("; ")
+            Future.successful(BadRequest(s"Not a suppression list ($path: $reason)"))
+          case JsSuccess(suppressions, _) =>
+            userService.importNewsEmailSuppressions(suppressions).map { optedOut =>
+              cc.loggingService.insert(
+                request.identity.userId,
+                request.ipAddress,
+                s"Click_module=ImportNewsEmailSuppressions_addresses=${suppressions.size}_optedOut=$optedOut"
+              )
+              Ok(Json.obj("addresses" -> suppressions.size, "opted_out" -> optedOut))
+            }
+        }
+    }
+}
+
+object NewsEmailController {
+  // Play stops a JSON body at 100 KB by default, which a few thousand rows would pass.
+  val MaxSuppressionBytes: Long = 5L * 1024 * 1024
 }

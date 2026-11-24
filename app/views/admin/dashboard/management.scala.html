@@ -42,7 +42,26 @@
     <p>Everyone project news may be emailed to, across all cities: registered accounts that haven't opted out in
       Settings or through an unsubscribe link. Each row carries that person's one-click unsubscribe link on this
       city's domain, which goes in the newsletter and its <code>List-Unsubscribe</code> headers.</p>
-    <a class="coverage-sort-btn" href="@routes.NewsEmailController.newsEmailRecipientsCsv" download>Download recipients (CSV)</a>
+    <div class="mgmt-actions">
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Send list</b>
+          <span class="dq-sub">Download it right before a send, so the latest opt-outs are left out.</span>
+        </div>
+        <a class="coverage-sort-btn mgmt-run" href="@routes.NewsEmailController.newsEmailRecipientsCsv" download>Download (CSV)</a>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Bounces and spam reports</b>
+          <span class="dq-sub">After a send, import the file <code>sync-news-suppressions.py</code> saves. Those accounts stop getting project news.</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-news-import">Import (JSON)</button>
+      </div>
+    </div>
+    @* Opened by the Import button, so the picker and its label stay hidden. *@
+    <label for="mgmt-news-import-file" hidden>Suppression list (JSON)</label>
+    <input type="file" id="mgmt-news-import-file" accept="application/json,.json" hidden>
+    <p class="mgmt-result dq-sub" id="mgmt-news-result" role="status" aria-live="polite"></p>
   </div>
 
   <div class="page-section" id="maintenance-section">

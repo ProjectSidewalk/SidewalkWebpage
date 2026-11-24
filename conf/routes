@@ -100,6 +100,7 @@ GET     /adminapi/team/:teamId                          controllers.AdminDashboa
 GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String ?= "", limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps
 GET     /adminapi/newsEmailRecipients.csv               controllers.NewsEmailController.newsEmailRecipientsCsv
+POST    /adminapi/newsEmailSuppressions                 controllers.NewsEmailController.importNewsEmailSuppressions
 GET     /adminapi/labels/all                            controllers.AdminController.getAllLabels
 GET     /adminapi/labelTags                             controllers.AdminController.getTagCounts
 GET     /adminapi/tagSeverity                           controllers.AdminController.getTagSeverityCounts

@@ -190,7 +190,8 @@ class UserDashboardController @Inject() (
       val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
-          unitsChoice, newsEmail = newsStatus.optOut.isEmpty, configService.getPrivateProfilesByDefault)
+          unitsChoice, newsEmail = newsStatus.optOut.isEmpty, newsEmailBlocked = newsStatus.blocked,
+          configService.getPrivateProfilesByDefault)
       )
     }
   }
@@ -229,7 +230,7 @@ class UserDashboardController @Inject() (
           case Some(subscribed) =>
             userService
               .getNewsEmailStatus(user.userId)
-              .map(status => Option.when(status.optOut.isEmpty != subscribed)(subscribed))
+              .map(status => Option.when(status.optOut.isEmpty != subscribed && !status.blocked)(subscribed))
           case None => Future.successful(None)
         }
 

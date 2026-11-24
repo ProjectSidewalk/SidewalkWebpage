@@ -29,7 +29,14 @@ case class UserSettings(
 case class NewsEmailOptOut(at: OffsetDateTime, source: NewsEmailOptOutSource)
 
 /** Where an account stands on project news: opted out (and why), and when they last consented, if ever. */
-case class NewsEmailStatus(optOut: Option[NewsEmailOptOut], consentedAt: Option[OffsetDateTime])
+case class NewsEmailStatus(optOut: Option[NewsEmailOptOut], consentedAt: Option[OffsetDateTime]) {
+
+  /** Whether the user reported our news as spam, which ticking the box can't undo. */
+  def blocked: Boolean = optOut.exists(_.source == NewsEmailOptOutSource.Complaint)
+}
+
+/** An address the mail sender won't deliver to (#5864): `reason` is `Bounce` or `Complaint`, `at` the sender's time. */
+case class NewsEmailSuppression(email: String, reason: NewsEmailOptOutSource, at: OffsetDateTime)
 
 class UserSettingsTableDef(tag: Tag) extends Table[UserSettings](tag, "user_settings") {
   def userId: Rep[String]                               = column[String]("user_id", O.PrimaryKey)
@@ -110,7 +117,7 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
 
   /**
    * Records the user ticking the news box themselves, which subscribes them and is the proof of consent the backfill
-   * must leave alone. The latest tick is kept.
+   * must leave alone. The latest tick is kept. A spam report stays, since that address must never be mailed again.
    * @return The number of `user_settings` rows written.
    */
   def consentToNewsEmail(userId: String): DBIO[Int] = {
@@ -120,6 +127,28 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
       ON CONFLICT (user_id) DO UPDATE
       SET news_email_consented_at = EXCLUDED.news_email_consented_at,
           news_email_opt_out_at = NULL, news_email_opt_out_source = NULL
+      WHERE user_settings.news_email_opt_out_source IS DISTINCT FROM 'complaint'
+    """
+  }
+
+  /**
+   * Opts out the account behind a suppressed address, at the sender's own time (#5864). A bounce leaves an earlier
+   * opt-out alone; a spam report replaces its reason, since only that one locks the Settings box.
+   * @return The number of `user_settings` rows written: 0 for an address with no account, or nothing to change.
+   */
+  def recordNewsEmailSuppression(suppression: NewsEmailSuppression): DBIO[Int] = {
+    val (email, at) = (suppression.email.trim.toLowerCase, suppression.at.toString)
+    sqlu"""
+      INSERT INTO sidewalk_login.user_settings (user_id, news_email_opt_out_at, news_email_opt_out_source)
+      SELECT sidewalk_user.user_id, $at::timestamptz, ${suppression.reason}
+      FROM sidewalk_login.sidewalk_user
+      WHERE sidewalk_user.email = $email
+      ON CONFLICT (user_id) DO UPDATE
+      SET news_email_opt_out_at     = EXCLUDED.news_email_opt_out_at,
+          news_email_opt_out_source = EXCLUDED.news_email_opt_out_source
+      WHERE user_settings.news_email_opt_out_at IS NULL
+         OR (EXCLUDED.news_email_opt_out_source = 'complaint'
+             AND user_settings.news_email_opt_out_source <> 'complaint')
     """
   }
 

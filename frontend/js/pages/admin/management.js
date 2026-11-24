@@ -18,4 +18,5 @@ new ManagementPage({
   refreshPlacesUrl: '/adminapi/refreshPlaces',
   refreshBasemapUrl: '/adminapi/refreshBasemap',
   recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness',
+  newsSuppressionsUrl: '/adminapi/newsEmailSuppressions',
 }, JSON.parse(data.assignableRoles)).init();

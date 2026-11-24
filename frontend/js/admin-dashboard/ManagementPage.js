@@ -33,7 +33,8 @@ export class ManagementPage {
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
    *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
-   *          refreshPlacesUrl: string, refreshBasemapUrl: string, recountGradientStalenessUrl: string}} urls
+   *          refreshPlacesUrl: string, refreshBasemapUrl: string, recountGradientStalenessUrl: string,
+   *          newsSuppressionsUrl: string}} urls
    * @param {string[]} assignableRoles - Role names from the backend's `Role.ADMIN_ASSIGNABLE_ROLES`.
    */
   constructor(urls, assignableRoles) {
@@ -55,6 +56,7 @@ export class ManagementPage {
       this.#wireTeams();
       this.#wireSearch();
       this.#wireMaintenance();
+      this.#wireNewsletter();
 
       this.#setStatus('', false, true);
     } catch (err) {
@@ -413,6 +415,54 @@ export class ManagementPage {
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
         + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
+  }
+
+  // --- Newsletter -------------------------------------------------------------------------------------------------
+
+  /** Wires the import of bounced and spam-reported addresses: pick the file, confirm its size, send it (#5864). */
+  #wireNewsletter() {
+    const btn = /** @type {HTMLButtonElement} */ (document.getElementById('mgmt-news-import'));
+    const picker = /** @type {HTMLInputElement} */ (document.getElementById('mgmt-news-import-file'));
+    const report = (message, isError = false) => {
+      const el = document.getElementById('mgmt-news-result');
+      el.textContent = message;
+      el.classList.toggle('error', isError);
+    };
+    btn.addEventListener('click', () => picker.click());
+    picker.addEventListener('change', async () => {
+      const file = picker.files[0];
+      // Emptied so that picking the same file again, once it's fixed, still counts as a change.
+      picker.value = '';
+      if (!file) return;
+      let suppressions;
+      try {
+        suppressions = JSON.parse(await file.text());
+      } catch {
+        suppressions = null;
+      }
+      if (!Array.isArray(suppressions)) {
+        report(`${file.name} isn't a suppression list from sync-news-suppressions.py.`, true);
+        return;
+      }
+      const confirmed = await ConfirmDialog.confirm({
+        message: `Import ${AdminShell.num(suppressions.length)} bounced or spam-reported address(es)? `
+          + 'Their accounts stop getting project news.',
+        confirmText: 'Import',
+        cancelText: 'Cancel',
+      });
+      if (!confirmed) return;
+      btn.disabled = true;
+      report('Importing…');
+      try {
+        const result = await AdminShell.mutate(this.#urls.newsSuppressionsUrl, 'POST', suppressions);
+        report(`Done: ${AdminShell.num(result.opted_out)} account(s) newly opted out, from `
+          + `${AdminShell.num(result.addresses)} address(es). The rest had opted out already or have no account.`);
+      } catch (err) {
+        report(`Import failed: ${err.message}`, true);
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   // --- Search -----------------------------------------------------------------------------------------------------

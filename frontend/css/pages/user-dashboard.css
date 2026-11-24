@@ -1492,6 +1492,9 @@
 
 .ud-check input:enabled { cursor: pointer; }
 
+/* A locked box's label isn't clickable either. */
+.ud-check:has(input:disabled) { cursor: default; }
+
 .ud-field-inline {
   display: flex;
   flex-wrap: wrap;

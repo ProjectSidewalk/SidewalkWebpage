@@ -1,4 +1,7 @@
-/** Tests for the admin Management page: the users table and its controls, team toggles and maintenance jobs (#5840). */
+/**
+ * Tests for the admin Management page: the users table and its controls, team toggles, maintenance jobs (#5840), and
+ * the newsletter's bounce import (#5864).
+ */
 
 import { loadModules, mockModule } from './loader.js';
 import { flush, routeFetch, sentRequests, textOf } from './support/routeFetch.js';
@@ -23,6 +26,7 @@ const URLS = {
   refreshPlacesUrl: '/adminapi/refreshPlaces',
   refreshBasemapUrl: '/adminapi/refreshBasemap',
   recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness',
+  newsSuppressionsUrl: '/adminapi/newsEmailSuppressions',
 };
 
 const ROLES = ['Registered', 'Researcher', 'Administrator'];
@@ -51,6 +55,9 @@ const MARKUP = `
   <div class="ps-table-scroll"><div id="mgmt-users"></div></div>
   <div class="ps-pager ps-pager--spread" id="mgmt-pagination-bottom"></div>
   <div id="mgmt-teams"></div>
+  <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-news-import">Import (JSON)</button>
+  <input type="file" id="mgmt-news-import-file" accept="application/json,.json" hidden>
+  <p class="mgmt-result dq-sub" id="mgmt-news-result" role="status" aria-live="polite"></p>
   <div class="mgmt-actions">${JOB_BUTTONS}</div>
   <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>`;
 
@@ -556,6 +563,75 @@ describe('maintenance jobs', () => {
     ConfirmDialog.confirm = vi.fn(() => Promise.resolve(false));
     const { sent } = await load({ user_stats: [], teams: [] });
     document.getElementById('mgmt-clear-cache').click();
+    await flush();
+    expect(sent()).toHaveLength(1);
+    expect(result().textContent).toBe('');
+  });
+});
+
+describe('the newsletter bounce import', () => {
+  const SUPPRESSIONS = [
+    { email: 'gone@example.org', reason: 'bounce', at: '2026-11-20T12:00:00Z' },
+    { email: 'annoyed@example.org', reason: 'complaint', at: '2026-11-21T08:30:00Z' },
+  ];
+  const result = () => document.getElementById('mgmt-news-result');
+  const importButton = () => /** @type {HTMLButtonElement} */ (document.getElementById('mgmt-news-import'));
+
+  /** Hands the picker a file with the given contents, the way choosing one in the browser's dialog does. */
+  async function pick(contents, name = 'news-suppressions.json') {
+    const picker = document.getElementById('mgmt-news-import-file');
+    Object.defineProperty(picker, 'files', { value: [{ name, text: async () => contents }], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    await flush();
+  }
+
+  test('the button opens the file picker', async () => {
+    await load({ user_stats: [], teams: [] });
+    const opened = vi.spyOn(document.getElementById('mgmt-news-import-file'), 'click').mockImplementation(() => {});
+    importButton().click();
+    expect(opened).toHaveBeenCalledOnce();
+  });
+
+  test('asks with the number of addresses, sends the list, and says how many accounts changed', async () => {
+    const { sent } = await load({ user_stats: [], teams: [] },
+      { [`POST ${URLS.newsSuppressionsUrl}`]: { addresses: 2, opted_out: 1 } });
+    await pick(JSON.stringify(SUPPRESSIONS));
+    expect(ConfirmDialog.confirm.mock.calls[0][0].message).toBe(
+      'Import 2 bounced or spam-reported address(es)? Their accounts stop getting project news.');
+    expect(sent().at(-1)).toEqual({ method: 'POST', url: URLS.newsSuppressionsUrl, body: SUPPRESSIONS });
+    expect(result().textContent).toBe(
+      'Done: 1 account(s) newly opted out, from 2 address(es). The rest had opted out already or have no account.');
+    expect(result().classList.contains('error')).toBe(false);
+    expect(importButton().disabled).toBe(false);
+  });
+
+  test('turns away a file that is not a list, without asking or sending', async () => {
+    const { sent } = await load({ user_stats: [], teams: [] });
+    for (const contents of ['email,reason\ngone@example.org,bounce', '{"email": "gone@example.org"}']) {
+      await pick(contents, 'recipients.csv');
+      expect(result().textContent).toBe('recipients.csv isn\'t a suppression list from sync-news-suppressions.py.');
+      expect(result().classList.contains('error')).toBe(true);
+    }
+    expect(ConfirmDialog.confirm).not.toHaveBeenCalled();
+    expect(sent()).toHaveLength(1);
+  });
+
+  test('shows the server\'s reason in red when it refuses the file', async () => {
+    await load({ user_stats: [], teams: [] },
+      { [`POST ${URLS.newsSuppressionsUrl}`]: { status: 400, body: 'Not a suppression list ((0)/reason: nope)' } });
+    await pick(JSON.stringify(SUPPRESSIONS));
+    expect(result().textContent).toBe('Import failed: Not a suppression list ((0)/reason: nope)');
+    expect(result().classList.contains('error')).toBe(true);
+    expect(importButton().disabled).toBe(false);
+  });
+
+  test('sends nothing when the admin cancels, or closes the picker without choosing', async () => {
+    ConfirmDialog.confirm = vi.fn(() => Promise.resolve(false));
+    const { sent } = await load({ user_stats: [], teams: [] });
+    await pick(JSON.stringify(SUPPRESSIONS));
+    const picker = document.getElementById('mgmt-news-import-file');
+    Object.defineProperty(picker, 'files', { value: [], configurable: true });
+    picker.dispatchEvent(new Event('change'));
     await flush();
     expect(sent()).toHaveLength(1);
     expect(result().textContent).toBe('');

@@ -92,7 +92,9 @@ beside `SaveSettings`. The same event with `_source=SignUp` is a new account tha
 (checked in opt-out-law countries, unchecked elsewhere; a box left alone logs nothing), and `_source=Unsubscribe` is
 the newsletter's unsubscribe link, logged under the account the link named though nobody is signed in. Opening that
 link logs `Visit_Unsubscribe_valid=<true|false>`, with `false` and no account for a token that didn't check out. An
-admin downloading the send list logs `Click_module=DownloadNewsEmailRecipients`. The
+admin downloading the send list logs `Click_module=DownloadNewsEmailRecipients`, and one importing the mail sender's
+bounces and spam complaints logs `Click_module=ImportNewsEmailSuppressions_addresses=<n>_optedOut=<n>` (addresses in
+the file, accounts it newly opted out); the accounts themselves log nothing, since they did nothing. The
 Settings page's change-password form (#2285) has its own button and logs, server-side, `Click_module=ChangePassword`
 on success, `ChangePasswordFailed_Reason=<WrongCurrentPassword|Invalid>` on a rejection (`Invalid` covers a new
 password that breaks the rules, doesn't match its confirmation, or equals the current one), and

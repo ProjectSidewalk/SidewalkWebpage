@@ -519,6 +519,12 @@ trait UserService {
 
   /** @return (user id, username, email) of everyone project news may be sent to, by email. */
   def getNewsEmailRecipients: Future[Seq[(String, String, String)]]
+
+  /**
+   * Opts out the accounts behind bounced and spam-reported addresses, all or none.
+   * @return How many accounts changed.
+   */
+  def importNewsEmailSuppressions(suppressions: Seq[NewsEmailSuppression]): Future[Int]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -747,6 +753,10 @@ class UserServiceImpl @Inject() (
   def getNewsEmailStatus(userId: String): Future[NewsEmailStatus] = db.run(userSettingsTable.getNewsEmailStatus(userId))
 
   def getNewsEmailRecipients: Future[Seq[(String, String, String)]] = sidewalkUserTable.newsEmailRecipients
+
+  def importNewsEmailSuppressions(suppressions: Seq[NewsEmailSuppression]): Future[Int] = db.run(
+    DBIO.sequence(suppressions.map(userSettingsTable.recordNewsEmailSuppression)).map(_.sum).transactionally
+  )
 
   def getPublicProfile(
       username: String,
