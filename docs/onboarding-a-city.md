@@ -158,7 +158,7 @@ its default either way.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
    version history, `config` with its tutorial street, tags, survey questions), creates the role, bumps the
    sequences, grants `readonly_user`. The clone marks every evolution applied, so the rows an evolution seeded once
-   (360.sql's two tutorial panos, 281.sql's SidewalkAI `user_stat` row and `aiValidation` missions) are written by
+   (360.sql's tutorial panos, 281.sql's SidewalkAI `user_stat` row and `aiValidation` missions) come from
    `db/scripts/seed-city-rows.sql` instead, here and again in the step 9 dump (#6036). The donor defaults to the dev
    container's `DATABASE_USER`; pass `--donor` to choose. A donor is refused below evolution 373 (its `label_type`
    is still a table that `tag` references, so the seed copy fails half-way; such a schema is usually stranded below
@@ -207,21 +207,23 @@ its default either way.
    `args="--dem-dir … --dem-name … --dem-resolution-m …"` (the sampler's own flags), or backfill the live city. A
    build without `street_structures.csv` skips the step too. `--skip-gradient` defers it; a rerun picks it up.
 9. **Dump** — writes `db/<schema>-dump` (`pg_dump -Fc`), the file `make import-dump` and the server both restore,
-   in two passes (#6036). The first dump leaves out the data of every table the clone, the fill, the scan and the
-   gradient do not write (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences),
-   `region_completion` included since the app recomputes it from an empty table. That drops everything a local QA
-   pass leaves (one walk in Explore leaves an `audit_task`, thousands of `audit_task_interaction` rows, a moved
-   `audited_distance`) and everything a job run as the city leaves (`intersection`, `cluster`, `sidewalk_presence`,
-   `background_job_run`, …); the step prints what it left out. `pg_dump` keeps or drops a whole table, though, and
-   the seed rows a city needs share tables with QA data. So the local schema is renamed aside
-   (`<schema>_set_aside`), the first dump is restored under the real name as a clean copy, the copy gets
-   `seed-city-rows.sql` and every street priority back at the fill's 1, and the copy is dumped whole. Then the copy
-   is dropped and the local schema gets its name back, exactly as it was, QA data included. While the copy holds
-   the name the city's role cannot log in, so an app running as the city loses its connections for those seconds
-   and reconnects by itself; nothing needs stopping. A run killed part-way leaves the local schema set aside, and
-   the next run puts it back before doing anything else (unless something other than that run's copy now has the
-   city's name, such as a dump imported since: then it stops and says what to do by hand). Then the handoff
-   checklist. `--dump-only` runs this step alone, and refuses a schema that is still the unfilled clone.
+   in two passes (#6036).
+   - **First pass.** A dump without the data of any table the clone, the fill, the scan and the gradient do not
+     write (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences);
+     `region_completion` is left out too, since the app recomputes it from an empty table. That drops what a
+     local QA pass leaves (an `audit_task`, thousands of `audit_task_interaction` rows, a moved
+     `audited_distance`) and what a job run as the city leaves (`intersection`, `cluster`, `sidewalk_presence`,
+     `background_job_run`, …). The step prints what it left out.
+   - **Second pass.** `pg_dump` keeps or drops a whole table, and the seed rows a city needs share tables with QA
+     data. So the local schema is renamed aside (`<schema>_set_aside`), the first dump is restored under the real
+     name as a clean copy, and the copy gets `seed-city-rows.sql` and every street priority back at the fill's 1.
+     The copy is dumped whole and dropped, and the local schema gets its name back with its QA data untouched.
+   - **A running app.** The city's role cannot log in while the copy holds the name, so an app running as the
+     city loses its connections for those seconds and reconnects by itself. Nothing needs stopping.
+   - **A killed run** leaves the local schema set aside, and the next run puts it back first. If something other
+     than that run's copy now has the city's name (a dump imported since), it stops and says what to do by hand.
+
+   Then the handoff checklist. `--dump-only` runs this step alone, and refuses a schema that is still unfilled.
 
 ## 4. What stays on a person
 

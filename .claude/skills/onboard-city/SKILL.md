@@ -148,11 +148,10 @@ skips finished steps. The script's flags go through `args=` (`make onboard-city 
   (`region_completion` too, which the app recomputes), so a local QA pass or a job run as the city (from
   `/clustering`, or an app left pointed at the schema) stays local and out of the dump; the step prints what it
   left out. It then sets the local schema aside, restores that dump as a clean copy, adds the seed rows every city
-  needs (`db/scripts/seed-city-rows.sql`: the tutorial panos and the SidewalkAI rows), resets the street priorities
-  on the copy, dumps the copy, and puts the local schema back untouched. It asks nothing and needs no app stopped:
-  an app running as the city just loses its database connections for a few seconds. `--dump-only` reruns only this
-  step, which is how a city QA'd after its first dump gets a clean one without passing "drop and recreate?"; it
-  refuses a schema that is still unfilled.
+  needs (`db/scripts/seed-city-rows.sql`) and the fill's street priorities, dumps the copy, and puts the local
+  schema back untouched. It asks nothing and needs no app stopped: an app running as the city loses its database
+  connections for a few seconds. `--dump-only` reruns only this step, which is how a city QA'd after its first
+  dump gets a clean one without passing "drop and recreate?"; it refuses a schema that is still unfilled.
 
 Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, center/zoom) against the report.
 

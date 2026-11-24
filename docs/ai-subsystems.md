@@ -60,8 +60,8 @@ there deploys nothing on its own.
 
 **DB:** `label_ai_assessment`, `label_ai_failure`, AI user `51b0b927-3c8a-45b2-93de-bd878d1e5cf4` (role `AI`), mission
 type `aiValidation` (evolutions 281/282, 321/322; model revisions since 420). The AI user's per-schema rows (its
-`user_stat` row and one `aiValidation` mission per label type) came from 281 on older cities; a city onboarded since
-gets them from `db/scripts/seed-city-rows.sql`, which the clone runs and the launch dump carries (#5349, #6036).
+`user_stat` row and one `aiValidation` mission per label type) came from 281 on older cities, and come from
+`db/scripts/seed-city-rows.sql` on a city onboarded since (#5349, #6036).
 
 ### Subsystem B — AI-generated labels (RampNet + auto-labeler)
 

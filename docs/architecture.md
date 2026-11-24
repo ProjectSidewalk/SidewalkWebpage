@@ -228,11 +228,10 @@ A pano's `pano_data.width`/`height` never change: Google re-renders pixels, neve
 sidewalk-panorama-tools, `reports/2026-08-09-photometa-census.md`). A stored image of another size is a mis-stitched
 file, not a resized pano (#5667).
 
-Every label has a `pano_data` row (`label_pano_id_fkey`, #4587), and a label's row normally arrives with it, in the
-label's `pano` block. Tutorial labels carry no block, because the tutorial's two panos (`tutorial`,
-`afterWalkTutorial`) are app assets with fabricated metadata, so their rows (`source = 'tutorial'`) are the
-server's. On cities that existed in August 2026, evolution 360 seeded them. A city onboarded since gets them from
-`db/scripts/seed-city-rows.sql`, which the clone runs and the launch dump carries (#6036).
+Every label has a `pano_data` row (`label_pano_id_fkey`, #4587), which normally arrives in the label's `pano` block.
+Tutorial labels carry no block, because the tutorial's two panos (`tutorial`, `afterWalkTutorial`) are app assets
+with fabricated metadata, so their rows (`source = 'tutorial'`) are seeded: by evolution 360 on cities that existed
+in August 2026, and by `db/scripts/seed-city-rows.sql` on a city onboarded since (#6036).
 
 Crops are the image Gallery, the landing validation grid and label popups fall back to when live imagery is
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
@@ -319,8 +318,7 @@ DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
 misconfiguration, like `PersistentMediaDirCheck`, and for boot-time repairs like `OrphanedJobRunSweep`, which closes
 the job runs a previous process died in the middle of, #5236). Custom execution contexts live in `app/executors/`;
-background actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
-`conf/application.conf`.
+background actors in `app/actor/`; HTTP filters in `app/filters/`, registered through `play.filters.enabled`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 

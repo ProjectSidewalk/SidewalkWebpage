@@ -411,8 +411,7 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
 
     "save a blockless label on each tutorial pano (#6036)" in {
       // Tutorial labels carry no pano block, so each tutorial pano's row has to be in the city already. CI's city is
-      // built by clone, dump and restore, as every launched city is, so this fails label_pano_id_fkey if that trip
-      // loses the seeded rows.
+      // cloned, dumped and restored like a launched one, so this fails if that trip loses the seeded rows.
       Seq("afterWalkTutorial" -> 7, "tutorial" -> 8).foreach { case (panoId, tempLabelId) =>
         val tutorialLabel = label(panoId, tempLabelId) + ("tutorial" -> JsBoolean(true))
 
@@ -429,8 +428,7 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
       // label_pano_id_fkey (evolution 360) is the only thing standing between a blockless label and an orphan, and
       // nothing checks ahead of it, so this surfaces as a failed transaction rather than a validation error: the
       // submission is rejected whole, exactly as a failed pano block is. Every city is seeded with the tutorial
-      // panos' rows (#6036), so only a client that drops the block reaches this; #5101 tracks giving it a cleaner
-      // answer than a 500.
+      // panos' rows (#6036), so only a client that drops the block reaches this; #5101 tracks a cleaner answer.
       val panoId = s"$panoPrefix-orphan"
 
       val resp = post(submission(labels = Seq(label(panoId, tempLabelId = 5)), panos = Seq.empty))

@@ -13,8 +13,7 @@
 # It clones a donor rather than restoring the committed `sidewalk_init` template: a template frozen below 372 can't be
 # replayed past evolutions 270/295/355, which read `sidewalk_login.role` that 372 dropped (#5198), and one at any level
 # goes stale. A donor at the current evolution level never does. `init.sh` restores the template for the dev DB's
-# first boot, and CI evolves it to HEAD and then uses it as the donor for its own test city, through this script
-# (test/e2e/fixtures/build-ci-city.sh, #6036).
+# first boot, and CI evolves it to HEAD as the donor for its test city (test/e2e/fixtures/build-ci-city.sh, #6036).
 #
 # HOW IT'S RUN:  make create-new-schema name=<schema> donor=<schema>   →   /opt/scripts/create-new-schema.sh <args>
 # INPUT:         $1 = new schema name (e.g. sidewalk_newcity)

@@ -365,9 +365,8 @@ jobs:
           key: *scala-coverage-cache-key
 
       # The evolved template becomes the donor that sidewalk_teaneck is cloned from, dumped and restored by the real
-      # onboarding scripts, so the suite runs on a schema shaped like a launched city's rather than the template's
-      # (#6036). The check fails on a table the donor has rows in and the rebuilt city has none in, unless the
-      # script says why that is expected.
+      # onboarding scripts, so the suite runs on a schema shaped like a launched city's (#6036). The check fails on
+      # a table that has rows in the donor and none in the rebuilt city, unless the script says why.
       - name: Rebuild the test city by clone, dump and restore
         run: |
           bash test/e2e/fixtures/build-ci-city.sh build
@@ -587,10 +586,8 @@ jobs:
           done
           echo "App did not come up in time (last status: $code)."; tail -100 app.log; exit 1
 
-      # The template the boot above evolved becomes the donor that sidewalk_teaneck is cloned from, dumped and
-      # restored by the real onboarding scripts, so every spec below runs on a schema shaped like a launched city's
-      # (#6036). The restore ends every connection to the database, so the app is stopped first; Play leaves its pid
-      # file behind when killed, and refuses to start again while it is there.
+      # The same rebuild as backend-tests (#6036). The restore ends every connection to the database, so the app is
+      # stopped first; Play leaves its pid file behind when killed, and refuses to start while it is there.
       - name: Rebuild the test city by clone, dump and restore
         run: |
           pid=$(cat app.pid)

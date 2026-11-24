@@ -39,12 +39,12 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
   Simpler/faster than Testcontainers (no Docker-in-Docker, no per-suite startup), and contributors aren't forced to run
   Docker locally.
 - **The test city is built the way a launched city is** (#6036). Both DB jobs rename the template to
-  `sidewalk_teaneck`, boot the app once to evolve it to HEAD, then run
+  `sidewalk_teaneck`, evolve it to HEAD, then run
   [`test/e2e/fixtures/build-ci-city.sh`](../test/e2e/fixtures/build-ci-city.sh): the evolved schema becomes a donor,
   and `sidewalk_teaneck` is cloned from it by `create-new-schema.sh`, dumped by `setup_new_city.py`'s `dump_schema`
-  and restored by `import-dump.sh`, the same three steps that stand up a real city. The script then fails if any
-  table the donor has rows in came through empty, unless it names the table with the reason it may start empty.
-  Rows an evolution seeds therefore only reach the specs if they would reach a launched city too.
+  and restored by `import-dump.sh`, the steps that stand up a real city. The script then fails if a table with
+  rows in the donor came through empty, unless it names the table with a reason. So a row an evolution seeds
+  reaches the specs only if it would reach a launched city.
 - Connection comes from env vars so the *same* tests run against the CI database or a local dev DB (`DATABASE_URL`
   overrides the default).
 - **Schema:** `play.evolutions.db.default.autoApply=true` is already set and `conf/application.test.conf` does `include

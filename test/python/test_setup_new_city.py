@@ -539,8 +539,7 @@ def test_onboarding_tables_are_exactly_what_the_scripts_write():
 
 
 # Every evolution that seeds literal rows into a table the dump leaves out, with where a launched city's rows come
-# from instead. Keyed by evolution, not by table: one evolution can seed rows a launched city needs into the same
-# table another evolution only migrated (#6036).
+# from instead. Keyed by evolution, not by table: one can seed rows a city needs into a table another only migrated.
 SEEDS_LEFT_OUT_OF_THE_DUMP = {
     (2, 'role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
     (2, 'user_role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
@@ -660,7 +659,7 @@ def test_dump_schema_seeds_a_clean_copy_and_dumps_that(monkeypatch):
     assert 'UPDATE sidewalk_bayonne.street_edge_priority SET priority = 1' in joined[seed]
     assert 'DROP SCHEMA IF EXISTS sidewalk_bayonne CASCADE' in joined[back]
     assert 'COMMENT ON SCHEMA sidewalk_bayonne_set_aside IS NULL' in joined[back]
-    # A city that has not been cloned yet has no role, and the put-back runs before the clone too.
+    # The put-back also runs before the clone, when the city has no role yet.
     assert "IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'sidewalk_bayonne') THEN ALTER ROLE" in joined[-3]
     assert not any('obj_description' in cmd for cmd in joined)
     assert any(cmd.endswith('rm -f /opt/sidewalk_bayonne-dump.first-pass') for cmd in joined)
@@ -693,7 +692,7 @@ def test_dump_schema_puts_the_local_schema_back_whatever_happens(monkeypatch):
                                                 'RENAME TO sidewalk_bayonne;': (1, '', 'ERROR:  no\n')})
     with pytest.raises(SystemExit, match='(?s)putting the local sidewalk_bayonne back.*sidewalk_bayonne_set_aside'):
         snc.dump_schema('sidewalk_bayonne')
-    # Something else has the city's name (a dump imported since): it may be someone's only copy, so it stays.
+    # Something else has the city's name (a dump imported since), and may be someone's only data: it stays.
     calls = _dump_env(monkeypatch, (0, 'label|0\n'), **{'obj_description': (0, '1\n'), "_set_aside'": (0, '1\n')})
     with pytest.raises(SystemExit, match='(?s)not the copy that step made.*DROP SCHEMA sidewalk_bayonne CASCADE'):
         snc.dump_schema('sidewalk_bayonne')
