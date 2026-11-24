@@ -220,8 +220,8 @@ its default either way.
    the name the city's role cannot log in, so an app running as the city loses its connections for those seconds
    and reconnects by itself; nothing needs stopping. A run killed part-way leaves the local schema set aside, and
    the next run puts it back before doing anything else (unless something other than that run's copy now has the
-   city's name, such as a dump imported since: then it stops and says what to do by hand). Then the handoff checklist. `--dump-only` runs this step
-   alone, and refuses a schema that is still the unfilled clone.
+   city's name, such as a dump imported since: then it stops and says what to do by hand). Then the handoff
+   checklist. `--dump-only` runs this step alone, and refuses a schema that is still the unfilled clone.
 
 ## 4. What stays on a person
 
