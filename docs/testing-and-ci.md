@@ -203,11 +203,12 @@ Parallel jobs:
   `requirements-dev.txt`, then `pytest` over `test/python`, mirroring `make test-python`. No DB/network. **Blocking**,
   and a required status check (`Python tests`), because `label_clustering.py` is shelled out to by the running app.
 - **backend-tests** — `setup-java` + the repo `db` image (TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck`
-  schema rename, rebuilt by clone, dump and restore after the evolutions apply; see "Test database"); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
-  required status check. Four ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first
+  schema rename); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
+  required status check. Five ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first
   (booting the app auto-applies pending evolutions, so this is also the forward-apply gate — the class of failure that
   shipped the broken evolution 325 — and the spec asserts the schema reached HEAD rather than stopping partway), then
-  the shared `test/e2e/fixtures/ci-seed.sql`, which needs the evolved schema, then `install-media.sh` beside it, then
+  `build-ci-city.sh`, which rebuilds the evolved city by clone, dump and restore (see "Test database"), then
+  the shared `test/e2e/fixtures/ci-seed.sql`, which needs the rebuilt schema, then `install-media.sh` beside it, then
   the suite, which needs both. The seed is generated: `test/e2e/fixtures/gen_ci_seed.py` rebuilds it from a prod slice
   pulled by `test/e2e/fixtures/ci_seed_slice.sql`, and the invariants it has to preserve (derived caches matching their
   runtime recomputes, the label-id window the share and phone-viewport specs read from opposite ends,
@@ -246,10 +247,11 @@ Parallel jobs:
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
   startup; it then stops the app, rebuilds the city by clone, dump and restore, restarts it and checks the rows, as
-  "Test database" describes; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly actors' first tick lands
-  uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
-  harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
-  `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke
+  "Test database" describes; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly
+  actors' first tick lands uniformly at random within 24h and would rewrite the very `user_stat` and
+  `street_edge_priority` rows the seed pins — harmless against the old empty schema, a rare red run against a seeded
+  one) and seeds the test city (`ci-seed.sql` + `install-media.sh`), and runs the suite against it in two steps — the
+  accessibility gate, then the runtime-error smoke
   half (after `ensure-admin.sh` makes the account its admin specs sign in as, #5946), **both blocking** since #5115 — on
   every PR, then checks that the file log landed in `SIDEWALK_LOG_DIR` and nowhere under the stage dir (#5138); uploads
   the Playwright report + `app.log` as an artifact when either half fails. CI installs Playwright on the runner directly
