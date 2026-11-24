@@ -538,19 +538,34 @@ def test_onboarding_tables_are_exactly_what_the_scripts_write():
                                                                            'region_completion']
 
 
+# Every evolution that seeds literal rows into a table the dump leaves out, with where a launched city's rows come
+# from instead. Keyed by evolution, not by table: one evolution can seed rows a launched city needs into the same
+# table another evolution only migrated, and a per-table entry let 360's tutorial pano rows pass as the latter (#6036).
+SEEDS_LEFT_OUT_OF_THE_DUMP = {
+    (2, 'role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
+    (2, 'user_role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
+    (6, 'role'): 'role now lives in sidewalk_login, outside a city\'s catalog.',
+    (8, 'role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
+    (8, 'user_role'): 'role and user_role now live in sidewalk_login, outside a city\'s catalog.',
+    (15, 'role'): 'role now lives in sidewalk_login, outside a city\'s catalog.',
+    (73, 'gsv_data'): 'A one-off migration of imagery rows, which a clone does not carry.',
+    (281, 'mission'): 'SidewalkAI seeds; the app re-creates them at boot wherever missing (AiSeedRowsRepair, #5349).',
+    (281, 'user_stat'): 'SidewalkAI seeds; the app re-creates them at boot wherever missing (AiSeedRowsRepair, #5349).',
+    (281, 'user_current_region'): 'A SidewalkAI seed that 337.sql deletes on purpose.',
+    (360, 'pano_data'): 'The tutorial panos\' rows; the server writes them with the first tutorial label (#6036).',
+}
+
+
 def test_evolutions_seed_no_table_the_dump_would_leave_out():
     """
     A donor behind the checkout gets the missing evolutions at the boot, and an evolution that seeds a table with
     literal rows — the way label_type and mission_type were seeded before they became enums — would put rows the
     launched city needs into a table whose data the dump leaves out. Nothing distinguishes that from a QA walk, so
-    the guard is here: every table an evolution seeds with literal rows (INSERT ... VALUES, or INSERT ... SELECT of
-    constants — 281.sql's `SELECT '<id>', 0.0, ... WHERE NOT EXISTS` shape, which the VALUES-only first version of
-    this test never saw, and which is how #5349 got past it — not dropped afterwards) is either kept in the dump or
-    in this pinned set, each of which is safe today: role and user_role now live in sidewalk_login, outside a city's
-    catalog; the gsv_data and pano_data rows were one-off migrations of data a clone does not carry; the mission,
-    user_stat and user_current_region rows are 281.sql's SidewalkAI seeds, which the app re-creates at boot wherever
-    they are missing (AiSeedRowsRepair; 337.sql deletes the user_current_region one on purpose). A new seeding
-    evolution fails here and has to choose (#5297).
+    the guard is here: every evolution that seeds a table with literal rows (INSERT ... VALUES, or INSERT ... SELECT
+    of constants — 281.sql's `SELECT '<id>', 0.0, ... WHERE NOT EXISTS` shape, which the VALUES-only first version of
+    this test never saw, and which is how #5349 got past it — into a table not dropped afterwards) either seeds a table
+    kept in the dump or is listed in SEEDS_LEFT_OUT_OF_THE_DUMP with where a launched city gets those rows instead. A
+    new seeding evolution fails here and has to choose (#5297).
     """
     statement = re.compile(r'(?is)\b(INSERT\s+INTO|DROP\s+TABLE)\s+(?:IF\s+EXISTS\s+)?"?(?:([a-z_]+)\.)?"?'
                            r'([a-z_]+)"?\s*(?:\([^)]*\))?\s*([^;]*)')
@@ -563,11 +578,11 @@ def test_evolutions_seed_no_table_the_dump_would_leave_out():
             if schema and schema != 'public':
                 continue
             if kind.upper().startswith('INSERT') and seeds_literal_rows(body):
-                seeded[table] = True
+                seeded[(int(path.stem), table)] = True
             elif kind.upper().startswith('DROP'):
-                seeded[table] = False
-    live = {table for table, alive in seeded.items() if alive} - snc.KEPT_IN_DUMP
-    assert live == {'role', 'user_role', 'mission', 'gsv_data', 'pano_data', 'user_stat', 'user_current_region'}
+                seeded.update({key: False for key in seeded if key[1] == table})
+    live = {key for key, alive in seeded.items() if alive and key[1] not in snc.KEPT_IN_DUMP}
+    assert live == set(SEEDS_LEFT_OUT_OF_THE_DUMP)
 
 
 def test_server_tutorial_pano_rows_match_evolution_360():
@@ -583,8 +598,8 @@ def test_server_tutorial_pano_rows_match_evolution_360():
     scala = (REPO_ROOT / 'app' / 'models' / 'pano' / 'PanoDataTable.scala').read_text()
     declared = re.findall(r'TutorialPano\(\s*"(\w+)",\s*' + r',\s*'.join([r'(\d+)'] * 4 + [number] * 4) + r'\s*\)',
                           scala)
-    capture_date = re.search(r'TutorialCaptureDate\s*=\s*"([^"]*)"', scala)
-    copyright_line = re.search(r'TutorialCopyright\s*=\s*"([^"]*)"', scala)
+    capture_date = re.search(r'TutorialCaptureDate\b[^=\n]*=\s*"([^"]*)"', scala)
+    copyright_line = re.search(r'TutorialCopyright\b[^=\n]*=\s*"([^"]*)"', scala)
 
     def row(dims, text, coords):
         return tuple(int(n) for n in dims) + tuple(text) + tuple(float(n) for n in coords)

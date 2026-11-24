@@ -34,6 +34,7 @@ import scala.concurrent.duration.*
  *   - a label whose pano block describes a *different* pano is refused outright at validation;
  *   - a label carrying no block at all (the tutorial shape) attaches to the pano_data row already there and leaves
  *     it untouched, and is refused whole when there is no such row;
+ *   - except on the two tutorial panos, whose rows the server writes itself when the city has none (#6036);
  *   - a failing *viewed* pano costs nothing else in the submission (the viewed batch is written off the request's
  *     critical path, so those assertions poll);
  *   - resubmitting a pano refreshes its metadata without clearing anything: position fields take the newest value,
@@ -397,7 +398,7 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
 
     "save a label that carries no pano block onto the pano row already there, the shape tutorial labels use" in {
       // Labels on the locally-served tutorial panos omit the block so their fabricated metadata can't touch the
-      // pano_data rows evolution 360 seeded for them; the server extends the same leniency to any blockless label.
+      // pano_data rows the server keeps for them; the server extends the same leniency to any blockless label.
       // The stored row must come through untouched — that leniency is the whole point of the shape.
       val panoId = s"$panoPrefix-blockless"
       seedPanoRow(panoId, "456 Seeded Ave")
@@ -413,16 +414,14 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
       // Tutorial labels carry no pano block, so their rows have to exist on the server's side. A city built by clone,
       // dump and restore, as every launched city is and as CI's is, starts without them, and before #6036 the first
       // tutorial label there failed label_pano_id_fkey and restarted the tutorial. On a schema that already has the
-      // rows this passes either way; on CI's it is the check. Both ids, since the walk moves onto the second one.
-      val tutorialPanoIds = Seq("tutorial", "afterWalkTutorial")
-      val labels          = tutorialPanoIds.zipWithIndex.map { case (panoId, i) =>
-        label(panoId, tempLabelId = 7 + i) + ("tutorial" -> JsBoolean(true))
-      }
+      // rows this passes either way; on CI's it is the check. One request per pano, the walk's second pano first: a
+      // request naming either one has to be enough, and the e2e tutorial spec covers a first label on `tutorial`.
+      Seq("afterWalkTutorial" -> 7, "tutorial" -> 8).foreach { case (panoId, tempLabelId) =>
+        val tutorialLabel = label(panoId, tempLabelId) + ("tutorial" -> JsBoolean(true))
 
-      val resp = post(submission(labels = labels, panos = Seq.empty))
+        val resp = post(submission(labels = Seq(tutorialLabel), panos = Seq.empty))
 
-      status(resp) mustBe OK
-      tutorialPanoIds.foreach { panoId =>
+        status(resp) mustBe OK
         labelCount(panoId) mustBe 1
         runDb(sql"SELECT source::text FROM pano_data WHERE pano_id = $panoId".as[String].headOption) mustBe
           Some("tutorial")
@@ -432,8 +431,9 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
     "refuse the whole submission when a blockless label names a pano with no row" in {
       // label_pano_id_fkey (evolution 360) is the only thing standing between a blockless label and an orphan, and
       // nothing checks ahead of it, so this surfaces as a failed transaction rather than a validation error: the
-      // submission is rejected whole, exactly as a failed pano block is. Every seeded deployment has the tutorial
-      // panos, so the shape should be unreachable in practice; #5101 tracks giving it a cleaner answer than a 500.
+      // submission is rejected whole, exactly as a failed pano block is. The tutorial panos are the exception: the
+      // server writes their rows itself when a city lacks them (#6036, the case above). For any other pano only a
+      // client that drops the block reaches this; #5101 tracks giving it a cleaner answer than a 500.
       val panoId = s"$panoPrefix-orphan"
 
       val resp = post(submission(labels = Seq(label(panoId, tempLabelId = 5)), panos = Seq.empty))
