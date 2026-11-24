@@ -38,6 +38,13 @@ phases**, the first of which requires *zero tests to exist* so it can land immed
   `pgdata18` makes the entrypoint skip `init.sh`, and the suites run against whatever city you last imported.
   Simpler/faster than Testcontainers (no Docker-in-Docker, no per-suite startup), and contributors aren't forced to run
   Docker locally.
+- **The test city is built the way a launched city is** (#6036). Both DB jobs rename the template to
+  `sidewalk_teaneck`, boot the app once to evolve it to HEAD, then run
+  [`test/e2e/fixtures/build-ci-city.sh`](../test/e2e/fixtures/build-ci-city.sh): the evolved schema becomes a donor,
+  and `sidewalk_teaneck` is cloned from it by `create-new-schema.sh`, dumped by `setup_new_city.py`'s `dump_schema`
+  and restored by `import-dump.sh`, the same three steps that stand up a real city. `e2e-smoke` then restarts the app
+  and fails if any table the donor has rows in came through empty, unless the script names it with the reason it may
+  start empty. Rows an evolution seeds therefore only reach the specs if they would reach a launched city too.
 - Connection comes from env vars so the *same* tests run against the CI database or a local dev DB (`DATABASE_URL`
   overrides the default).
 - **Schema:** `play.evolutions.db.default.autoApply=true` is already set and `conf/application.test.conf` does `include
@@ -196,7 +203,7 @@ Parallel jobs:
   `requirements-dev.txt`, then `pytest` over `test/python`, mirroring `make test-python`. No DB/network. **Blocking**,
   and a required status check (`Python tests`), because `label_clustering.py` is shelled out to by the running app.
 - **backend-tests** — `setup-java` + the repo `db` image (TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck`
-  schema rename); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
+  schema rename, rebuilt by clone, dump and restore after the evolutions apply; see "Test database"); runs **all of `test/`** (`sbt coverage test`) against a real Postgres+PostGIS. **Blocking**, and a
   required status check. Four ordered steps, and the order is the whole design: `EvolutionsApplySpec` alone first
   (booting the app auto-applies pending evolutions, so this is also the forward-apply gate — the class of failure that
   shipped the broken evolution 325 — and the spec asserts the schema reached HEAD rather than stopping partway), then
@@ -238,7 +245,8 @@ Parallel jobs:
 - **e2e-smoke** — the Playwright browser smoke suite ([`test/e2e/`](../test/e2e), #4504). Reuses `backend-tests`' DB
   recipe (repo `db` image, TCP readiness probe, `sidewalk_init` → `sidewalk_teaneck` schema rename), builds the frontend
   assets (`npm run build`), then `sbt stage` and boots the **prod-mode binary** on `:9000` (evolutions auto-apply at
-  startup; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly actors' first tick lands
+  startup; it then stops the app, rebuilds the city by clone, dump and restore, restarts it and checks the rows, as
+  "Test database" describes; readiness = `GET /signIn` returning 200; `ActorModule` disabled, because the nightly actors' first tick lands
   uniformly at random within 24h and would rewrite the very `user_stat` and `street_edge_priority` rows the seed pins —
   harmless against the old empty schema, a rare red run against a seeded one) and seeds the test city (`ci-seed.sql` +
   `install-media.sh`), and runs the suite against it in two steps — the accessibility gate, then the runtime-error smoke

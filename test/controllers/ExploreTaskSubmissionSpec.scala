@@ -9,7 +9,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
+import play.api.libs.json.{JsArray, JsBoolean, JsNull, JsObject, Json}
 import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
@@ -407,6 +407,26 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
       status(resp) mustBe OK
       labelCount(panoId) mustBe 1
       panoRow(panoId) mustBe Some((None, Some(4096), Some("456 Seeded Ave")))
+    }
+
+    "save a blockless label on each tutorial pano, and leave the pano's row in place (#6036)" in {
+      // Tutorial labels carry no pano block, so their rows have to exist on the server's side. A city built by clone,
+      // dump and restore, as every launched city is and as CI's is, starts without them, and before #6036 the first
+      // tutorial label there failed label_pano_id_fkey and restarted the tutorial. On a schema that already has the
+      // rows this passes either way; on CI's it is the check. Both ids, since the walk moves onto the second one.
+      val tutorialPanoIds = Seq("tutorial", "afterWalkTutorial")
+      val labels          = tutorialPanoIds.zipWithIndex.map { case (panoId, i) =>
+        label(panoId, tempLabelId = 7 + i) + ("tutorial" -> JsBoolean(true))
+      }
+
+      val resp = post(submission(labels = labels, panos = Seq.empty))
+
+      status(resp) mustBe OK
+      tutorialPanoIds.foreach { panoId =>
+        labelCount(panoId) mustBe 1
+        runDb(sql"SELECT source::text FROM pano_data WHERE pano_id = $panoId".as[String].headOption) mustBe
+          Some("tutorial")
+      }
     }
 
     "refuse the whole submission when a blockless label names a pano with no row" in {

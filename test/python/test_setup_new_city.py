@@ -570,6 +570,32 @@ def test_evolutions_seed_no_table_the_dump_would_leave_out():
     assert live == {'role', 'user_role', 'mission', 'gsv_data', 'pano_data', 'user_stat', 'user_current_region'}
 
 
+def test_server_tutorial_pano_rows_match_evolution_360():
+    """
+    A launched city has no rows for the two tutorial panos until the server writes them with the first tutorial label
+    (#6036), so the server holds its own copy of the values evolution 360 seeded on older cities. Both have to describe
+    the imagery the viewer serves; a value changed on one side only would give the cities two different tutorials.
+    """
+    evolution = (REPO_ROOT / 'conf' / 'evolutions' / 'default' / '360.sql').read_text().split('!Downs')[0]
+    number = r'(-?[\d.]+)'
+    seeded = re.findall(r"\('(\w+)', (\d+), (\d+), (\d+), (\d+), '([^']*)', '([^']*)', FALSE, NULL,\s+"
+                        + ', '.join([number] * 4) + r", 'tutorial'", evolution)
+    scala = (REPO_ROOT / 'app' / 'models' / 'pano' / 'PanoDataTable.scala').read_text()
+    declared = re.findall(r'TutorialPano\(\s*"(\w+)",\s*' + r',\s*'.join([r'(\d+)'] * 4 + [number] * 4) + r'\s*\)',
+                          scala)
+    capture_date = re.search(r'TutorialCaptureDate\s*=\s*"([^"]*)"', scala)
+    copyright_line = re.search(r'TutorialCopyright\s*=\s*"([^"]*)"', scala)
+
+    def row(dims, text, coords):
+        return tuple(int(n) for n in dims) + tuple(text) + tuple(float(n) for n in coords)
+
+    assert len(seeded) == 2
+    expected = {r[0]: row(r[1:5], r[5:7], r[7:11]) for r in seeded}
+    actual = {r[0]: row(r[1:5], (capture_date and capture_date.group(1), copyright_line and copyright_line.group(1)),
+                        r[5:9]) for r in declared}
+    assert actual == expected
+
+
 def seeds_literal_rows(body):
     """
     Whether an INSERT's body (everything after the column list) writes rows the evolution made up, rather than rows
