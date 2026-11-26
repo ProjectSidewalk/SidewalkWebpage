@@ -72,6 +72,17 @@ class CoverageTallySpec extends AnyFunSuite with Matchers {
     tally.labelers shouldBe Set("a", "b", "c")
     tally.firstObservation shouldBe Some(LocalDate.of(2026, 3, 1))
     tally.lastObservation shouldBe Some(LocalDate.of(2026, 3, 20))
+    // Stated outright too, since the coverage `agree` compares against now folds this same tally: "June 2021" names no
+    // usable year, so the dated years are 2019, 2023 and 2024.
+    tally.medianImageryYear shouldBe Some(2023)
+    tally.oldImageryPercent(today) shouldBe Some(33)
+  }
+
+  test("counts imagery as old only before the cutoff year, not in it") {
+    val cutoff = today.getYear - Coverage.OldImageryYears
+    val labels = Seq(cutoff - 1, cutoff).zipWithIndex.map { case (y, i) => label(i + 1, capture = Some(s"$y-06")) }
+    folded(labels).oldImageryPercent(today) shouldBe Some(50)
+    folded(labels.drop(1)).oldImageryPercent(today) shouldBe Some(0)
   }
 
   test("takes the upper median of an even count of imagery years, as the report does") {

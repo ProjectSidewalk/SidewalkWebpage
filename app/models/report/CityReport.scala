@@ -51,6 +51,15 @@ object RegionQuality {
 }
 
 /**
+ * Every region's counted labels, folded, and when the city-wide pass that folded them finished. The page states that
+ * time, since the tally is cached for hours and can be older than the page around it.
+ *
+ * @param byRegion  Each region's tally, by region id; a region with no counted label has none
+ * @param countedAt When the pass finished
+ */
+case class CityTallies(byRegion: Map[Int, CoverageTally], countedAt: OffsetDateTime)
+
+/**
  * One neighborhood's row on the city reports page.
  *
  * @param score          The neighborhood report's own score: [[NeighborhoodScore.from]] over the region's streets in the
@@ -88,6 +97,9 @@ case class CityReportRow(
   /** @return The types that lower the score, each with how much (a positive size), most first. */
   def causes: Seq[(String, Double)] = CityReport.causesOf(contributions)
 
+  /** @return The length its bar would have before any scale: the sum of its causes. */
+  def causeTotal: Double = causes.map(_._2).sum
+
   /** @return How much more street must be explored before it can be scored; 0 once it can. */
   def metersToFloor: Double = math.max(0.0, AccessScoreSpotlight.MinRegionCompletion * totalMeters - auditedMeters)
 }
@@ -100,15 +112,19 @@ case class CityReportRow(
  *                             no streets; the table's order before anyone sorts it
  * @param minCompletionPercent The explored share a neighborhood needs before it is scored, whole percent
  * @param scoresReady          False while the city's AccessScores are being computed for the first time since a deploy
- * @param qualityReady         False while the city's labels are being tallied for the first time
+ * @param qualityCountedAt     When the labels behind the quality figures were tallied, or None while they are being
+ *                             tallied for the first time
  */
 case class CityReport(
     rows: Seq[CityReportRow],
     generatedAt: OffsetDateTime,
     minCompletionPercent: Int,
     scoresReady: Boolean,
-    qualityReady: Boolean
+    qualityCountedAt: Option[OffsetDateTime]
 ) {
+
+  /** @return False while the city's labels are being tallied for the first time. */
+  def qualityReady: Boolean = qualityCountedAt.isDefined
 
   /** @return The neighborhood the page opens on: the lowest-scoring one, or the most explored when none is scored. */
   def selected: Option[CityReportRow] = rows.headOption
@@ -116,11 +132,27 @@ case class CityReport(
   def scoredRows: Seq[CityReportRow] = rows.filter(_.scored)
 
   /**
-   * The largest total any row's bar would have, so every bar is drawn on one scale and two rows can be compared by eye.
+   * What a full-width bar stands for, so every bar is drawn on one scale. Taken from the scored rows: a provisional
+   * row's mean is over however few streets are explored, so one barely explored neighborhood could otherwise shrink
+   * every scored row's bar. Only when no scored row has a cause do the provisional rows set it.
    *
    * @return The scale, or 0 when no row has a cause.
    */
-  def barScale: Double = rows.map(_.causes.map(_._2).sum).maxOption.getOrElse(0.0)
+  lazy val barScale: Double = {
+    def largest(of: Seq[CityReportRow]) = of.map(_.causeTotal).filter(_ > 0).maxOption
+    largest(scoredRows).orElse(largest(rows)).getOrElse(0.0)
+  }
+
+  /**
+   * @return Each of the row's causes with its share of a full-width bar, largest first. A provisional row past the
+   *         scale is shrunk to fill the bar exactly, keeping its mix, rather than being cut off at the edge.
+   */
+  def barShares(row: CityReportRow): Seq[(String, Double)] =
+    if (barScale <= 0) row.causes.map { case (t, _) => t -> 0.0 }
+    else {
+      val fit = math.min(1.0, barScale / row.causeTotal)
+      row.causes.map { case (t, v) => t -> v / barScale * fit }
+    }
 }
 
 object CityReport {
@@ -130,7 +162,7 @@ object CityReport {
    * @param slugs       Each region's report address; a region without one is left out, so every row links to a report
    * @param completions Each region's explored and total distance
    * @param scores      The city's published AccessScores, or None while they are still being computed
-   * @param tallies     Each region's counted labels, folded, or None while they are still being tallied
+   * @param tallies     The city's counted labels, folded by region, or None while they are still being tallied
    * @return The page.
    */
   def build(
@@ -138,7 +170,7 @@ object CityReport {
       slugs: Map[Int, String],
       completions: Seq[NamedRegionCompletion],
       scores: Option[AccessScores],
-      tallies: Option[Map[Int, CoverageTally]],
+      tallies: Option[CityTallies],
       generatedAt: OffsetDateTime
   ): CityReport = {
     val completionById = completions.map(c => c.regionId -> c).toMap
@@ -167,8 +199,11 @@ object CityReport {
           totalMeters = total,
           contributions = contributions,
           topTypes = causesOf(contributions).take(2).map(_._1),
-          helpExplore = scores.isDefined && total > 0 && score.score.isEmpty,
-          quality = tallies.map(t => RegionQuality.from(t.getOrElse(id, CoverageTally.empty), audited))
+          // Not past the floor: a region explored that far but without a score (its streets lie outside the scores, say)
+          // would not be scored by more exploring.
+          helpExplore = scores.isDefined && total > 0 && score.score.isEmpty &&
+            !AccessScoreSpotlight.completionQualifies(AccessScoreSpotlight.completionRate(completion)),
+          quality = tallies.map(t => RegionQuality.from(t.byRegion.getOrElse(id, CoverageTally.empty), audited))
         )
     }
     CityReport(
@@ -176,7 +211,7 @@ object CityReport {
       generatedAt = generatedAt,
       minCompletionPercent = math.round(AccessScoreSpotlight.MinRegionCompletion * 100).toInt,
       scoresReady = scores.isDefined,
-      qualityReady = tallies.isDefined
+      qualityCountedAt = tallies.map(_.countedAt)
     )
   }
 
@@ -219,8 +254,12 @@ object CityReportFormat {
     val names = row.topTypes.map(typeName)
     if (!scoresReady) messages("report.city.why.computing")
     else if (!row.hasStreets) messages("report.city.why.nostreets")
-    else if (row.contributions.isEmpty) messages("report.city.why.unexplored")
-    else if (row.scored) names match {
+    else if (row.contributions.isEmpty) {
+      // No explored street in the scores. Usually nothing is explored; when some is, it was not scored, and saying
+      // "not explored" beside a share explored would contradict the row.
+      if (row.score.percentExplored == 0) messages("report.city.why.unexplored")
+      else messages("report.city.why.sofar.none", row.score.percentExplored)
+    } else if (row.scored) names match {
       case Seq(a, b) => messages("report.city.why.two", a, b)
       case Seq(a)    => messages("report.city.why.one", a)
       case _         => messages("report.city.why.none")
@@ -234,10 +273,24 @@ object CityReportFormat {
   }
 
   /** @return A distance in the reader's units, to a tenth, with its unit. */
-  def distance(meters: Double)(using request: RequestHeader, messages: Messages): String = {
-    val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
-    s"${ReportFormat.oneDecimal(value)} ${ControllerUtils.distanceUnitWords.abbr}"
-  }
+  def distance(meters: Double)(using request: RequestHeader, messages: Messages): String =
+    s"${ReportFormat.oneDecimal(inUnits(meters))} ${ControllerUtils.distanceUnitWords.abbr}"
+
+  /**
+   * How much more of an unscored neighborhood must be explored before it is scored, rounded up to a tenth so a few
+   * meters short never reads as "0.0 to go".
+   *
+   * @return The phrase, or None once nothing more is needed (or there is nothing to explore).
+   */
+  def toGo(row: CityReportRow)(using request: RequestHeader, messages: Messages): Option[String] =
+    Option.when(row.hasStreets && !row.scored && row.metersToFloor > 0) {
+      val tenths = math.ceil(inUnits(row.metersToFloor) * 10 - 1e-9) / 10
+      messages("report.city.togo", s"${ReportFormat.oneDecimal(tenths)} ${ControllerUtils.distanceUnitWords.abbr}")
+    }
+
+  /** @return Meters in the reader's units: kilometers or miles. */
+  private def inUnits(meters: Double)(using request: RequestHeader, messages: Messages): Double =
+    if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
 
   /** @return Observations per explored kilometer or mile, as the reader's units have it. */
   def density(quality: RegionQuality)(using request: RequestHeader, messages: Messages): Option[Double] =
@@ -262,8 +315,7 @@ object CityReportClientData {
    * @return The page's `#reports-data`: each row's raw values, to sort and color by, and its words, to redraw the panel
    *         with, plus each scored type's name and the scale every bar is drawn on.
    */
-  def toJson(report: CityReport, basemap: JsObject)(using request: RequestHeader, messages: Messages): JsValue = {
-    val scale = report.barScale
+  def toJson(report: CityReport, basemap: JsObject)(using request: RequestHeader, messages: Messages): JsValue =
     Json.obj(
       "basemap"       -> basemap,
       "scoresReady"   -> report.scoresReady,
@@ -284,23 +336,20 @@ object CityReportClientData {
           "provisional" -> row.provisional,
           "hasStreets"  -> row.hasStreets,
           "score"       -> row.score.score,
-          "completion"  -> row.completionRate,
-          "topType"     -> row.topTypes.headOption,
-          "causes"      -> row.causes.map { case (t, v) =>
-            Json.obj("type" -> t, "share" -> (if (scale > 0) v / scale else 0.0))
-          },
-          "reviewed" -> quality.flatMap(_.reviewedPercent),
-          "latest"   -> quality.flatMap(_.lastObservation).map(_.toString),
-          "imagery"  -> quality.flatMap(_.medianImageryYear),
-          "labelers" -> quality.map(_.labelers),
-          "density"  -> quality.flatMap(CityReportFormat.density),
-          "text"     -> Json.obj(
+          // None with no streets, where AccessScore's vacuous 1.0 would sort it first by Explored.
+          "completion" -> Option.when(row.hasStreets)(row.completionRate),
+          "topType"    -> row.topTypes.headOption,
+          "causes"     -> report.barShares(row).map { case (t, share) => Json.obj("type" -> t, "share" -> share) },
+          "reviewed"   -> quality.flatMap(_.reviewedPercent),
+          "latest"     -> quality.flatMap(_.lastObservation).map(_.toString),
+          "imagery"    -> quality.flatMap(_.medianImageryYear),
+          "labelers"   -> quality.map(_.labelers),
+          "density"    -> quality.flatMap(CityReportFormat.density),
+          "text"       -> Json.obj(
             "score"    -> row.score.score.map(ReportFormat.score),
             "why"      -> CityReportFormat.why(row, report.scoresReady),
             "explored" -> Option.when(row.hasStreets)(CityReportFormat.explored(row)),
-            "toGo"     -> Option.when(row.hasStreets && !row.scored && row.metersToFloor > 0)(
-              messages("report.city.togo", CityReportFormat.distance(row.metersToFloor))
-            ),
+            "toGo"     -> CityReportFormat.toGo(row),
             "reviewed" -> quality.flatMap(_.reviewedPercent).map(p => messages("report.city.reviewed.value", p)),
             "latest"   -> quality.flatMap(_.lastObservation).map(CityReportFormat.month),
             "imagery"  -> quality.flatMap(_.medianImageryYear).map(_.toString),
@@ -319,5 +368,4 @@ object CityReportClientData {
         )
       }
     )
-  }
 }

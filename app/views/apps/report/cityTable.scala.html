@@ -56,7 +56,7 @@
         <td data-column="why" data-label="@Messages("report.city.col.why")">
           @if(row.causes.nonEmpty) {
             <span class="reports-bar@if(row.provisional){ reports-bar--provisional}" aria-hidden="true">
-              @for((labelType, size) <- row.causes) {<span class="reports-bar__seg" data-label-type="@labelType" data-share="@(if (report.barScale > 0) size / report.barScale else 0.0)"></span>}
+              @for((labelType, share) <- report.barShares(row)) {<span class="reports-bar__seg" data-label-type="@labelType" data-share="@share"></span>}
             </span>
           }
           @if(row.provisional) {<p class="reports-provisional">@Messages("report.city.provisional")</p>}

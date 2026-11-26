@@ -1131,6 +1131,7 @@ report.city.summary.none = Nenhum dos {0} bairros tem pontuação ainda. O Acces
 report.city.computing.scores = O AccessScore ainda está calculando as pontuações desta cidade, o que leva um ou dois minutos após uma atualização. Os bairros estão listados abaixo sem elas; recarregue em instantes para vê-las.
 report.city.computing.quality = Os rótulos por trás das colunas de qualidade dos dados ainda estão sendo contados. Recarregue em alguns minutos para vê-los.
 report.city.computing.cell = Ainda contando
+report.city.quality.counted = Números de qualidade dos dados contados pela última vez:
 report.city.lens.label = Colorir o mapa por
 report.city.lens.score = Pontuação
 report.city.lens.explored = Explorado

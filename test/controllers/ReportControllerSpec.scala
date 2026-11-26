@@ -8,9 +8,10 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import models.api.StreetAccessScoreForApi
 import models.region.NamedRegionCompletion
-import models.report.{CityReport, CoverageTally}
+import models.report.{CityReport, CityTallies}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
-import service.{AccessScoreWeights, AccessScores, ApiService, ReportOutcome, ReportService}
+import models.utils.IpAddress
+import service.{AccessScoreWeights, AccessScores, ApiService, LoggingService, ReportOutcome, ReportService}
 import util.{SidewalkSpec, UserAgents}
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -136,8 +137,9 @@ class CityReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       slugs.values.foreach(slug => body must include(s"""href="/report/neighborhood/$slug""""))
       body must include("""id="navbar-reports-btn"""")
       body must include("""id="reports-data"""")
-      // The menu marks the page it is on.
+      // The menu marks the page it is on, and the Tools toggle that holds it.
       body must include("""id="navbar-reports-btn" href="/reports" class="is-active" aria-current="page"""")
+      body must include("""id="nav-tools-dropdown" class="navbar-button is-active"""")
     }
 
     "serve a phone the page and the menu item rather than redirecting" in {
@@ -199,7 +201,7 @@ class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPe
     Seq.empty
   )
 
-  private def city(scores: Option[AccessScores], tallies: Option[Map[Int, CoverageTally]]): CityReport =
+  private def city(scores: Option[AccessScores], tallies: Option[CityTallies]): CityReport =
     CityReport.build(
       Seq(1 -> "A Neighborhood"),
       Map(1 -> "a-neighborhood"),
@@ -217,8 +219,25 @@ class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPe
     def cityReport                                                     = Future.successful(cityPage)
   }
 
+  /** Every activity string the app logged, in order. */
+  private val logged = java.util.concurrent.ConcurrentLinkedQueue[String]()
+
   override def fakeApplication(): Application =
-    GuiceApplicationBuilder().disable[modules.ActorModule].overrides(bind[ReportService].toInstance(computing)).build()
+    GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .overrides(
+        bind[ReportService].toInstance(computing),
+        bind[LoggingService].toInstance(new LoggingService {
+          private def record(activity: String): Future[Int] = { logged.add(activity); Future.successful(1) }
+          def insert(userId: String, ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int] =
+            record(activity)
+          def insert(userId: String, ipAddress: IpAddress, activity: String): Future[Int]         = record(activity)
+          def insert(userId: Option[String], ipAddress: IpAddress, activity: String): Future[Int] = record(activity)
+          def insert(userId: Option[String], ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime)
+              : Future[Int] = record(activity)
+        })
+      )
+      .build()
 
   "GET /report/neighborhood/:key" must {
     "answer 503 with a page and a Retry-After, rather than a report with holes in it" in {
@@ -228,12 +247,14 @@ class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPe
       contentType(resp) mustBe Some("text/html")
       contentAsString(resp) must include("report-title")
       contentAsString(resp) must not include "report-coverage-title"
+      // A neighborhood report sits under the Tools menu too.
+      contentAsString(resp) must include("""id="nav-tools-dropdown" class="navbar-button is-active"""")
     }
   }
 
   "GET /reports" must {
     "list the neighborhoods and link their reports without a score while the scores are being computed" in {
-      cityPage = city(None, Some(Map.empty))
+      cityPage = city(None, Some(CityTallies(Map.empty, now.minusHours(5))))
       val resp = route(app, FakeRequest(GET, "/reports")).get
       status(resp) mustBe OK
       val body = contentAsString(resp)
@@ -244,6 +265,10 @@ class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPe
       body must not include "42.0"
       body must not include "reports-summary"
       body must not include "reports-quality-computing"
+      // The quality figures state their own time, five hours before the page's.
+      body must include("""<time datetime="2026-11-26T07:00:00Z" data-local-time>""")
+      // A visit is logged under its own name.
+      logged.toArray.toSeq must contain("Visit_Report_City")
     }
 
     "print the scores, and say the quality columns are still being counted, while the label tally is" in {
@@ -256,6 +281,7 @@ class ReportControllerStillComputingSpec extends SidewalkSpec with GuiceOneAppPe
       body must include("""id="reports-quality-computing"""")
       body must not include "reports-quality__value"
       body must not include "reports-scores-computing"
+      body must not include "reports-quality-counted"
     }
   }
 }

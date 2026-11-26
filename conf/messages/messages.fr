@@ -1140,6 +1140,7 @@ report.city.summary.none = Aucun des {0} quartiers n''a encore de score. AccessS
 report.city.computing.scores = AccessScore calcule encore les scores de cette ville, ce qui prend une ou deux minutes après une mise à jour. Les quartiers sont listés ci-dessous sans eux ; rechargez la page dans un instant pour les voir.
 report.city.computing.quality = Les étiquettes des colonnes de qualité des données sont encore en cours de comptage. Rechargez la page dans quelques minutes pour les voir.
 report.city.computing.cell = Comptage en cours
+report.city.quality.counted = Indicateurs de qualité des données comptés pour la dernière fois :
 report.city.lens.label = Colorer la carte selon
 report.city.lens.score = Score
 report.city.lens.explored = Exploré

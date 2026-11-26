@@ -44,6 +44,11 @@
         <span class="reports-badge">@Messages("report.beta.badge")</span>
       </p>
       <p class="reports-generated">@Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))</p>
+      @* The tally is cached for hours, so the page says how old its quality figures are rather than letting "Generated"
+         speak for them. Printed in UTC; reports.js restates it in the reader's own time zone. *@
+      @for(countedAt <- report.qualityCountedAt) {
+        <p class="reports-generated" id="reports-quality-counted">@Messages("report.city.quality.counted") <time datetime="@countedAt.toInstant.toString" data-local-time>@countedAt.format(java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT).withLocale(messages.lang.toLocale)) UTC</time></p>
+      }
       <p class="reports-lede">@Messages("report.city.lede", city)</p>
       @if(report.scoresReady) {
         <p class="reports-summary" id="reports-summary">

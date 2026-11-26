@@ -1126,6 +1126,7 @@ report.city.summary.none = None of the {0} neighborhoods has a score yet. Access
 report.city.computing.scores = AccessScore is still calculating this city''s scores, which takes a minute or two after an update. The neighborhoods are listed below without them; reload shortly to see them.
 report.city.computing.quality = The labels behind the data-quality columns are still being counted. Reload in a few minutes to see them.
 report.city.computing.cell = Still counting
+report.city.quality.counted = Data-quality figures last counted:
 report.city.lens.label = Color the map by
 report.city.lens.score = Score
 report.city.lens.explored = Explored

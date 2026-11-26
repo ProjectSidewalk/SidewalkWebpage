@@ -1199,6 +1199,7 @@ report.city.summary.none = {0} 個社區都還沒有分數。社區的街道探�
 report.city.computing.scores = AccessScore 仍在計算這個城市的分數，更新後需要一兩分鐘。下方先列出各社區，不含分數；請稍後重新載入查看。
 report.city.computing.quality = 資料品質欄位背後的標記仍在統計中。請幾分鐘後重新載入查看。
 report.city.computing.cell = 統計中
+report.city.quality.counted = 資料品質數據最後統計於：
 report.city.lens.label = 地圖著色依據
 report.city.lens.score = 分數
 report.city.lens.explored = 已探索

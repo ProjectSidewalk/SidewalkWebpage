@@ -1121,6 +1121,7 @@ report.city.summary.none = Nog geen van de {0} buurten heeft een score. AccessSc
 report.city.computing.scores = AccessScore berekent de scores van deze stad nog; dat duurt na een update een paar minuten. De buurten staan hieronder zonder scores; laad de pagina zo opnieuw om ze te zien.
 report.city.computing.quality = De labels achter de kolommen over datakwaliteit worden nog geteld. Laad de pagina over een paar minuten opnieuw om ze te zien.
 report.city.computing.cell = Wordt nog geteld
+report.city.quality.counted = Cijfers over datakwaliteit voor het laatst geteld:
 report.city.lens.label = Kleur de kaart op
 report.city.lens.score = Score
 report.city.lens.explored = Bekeken

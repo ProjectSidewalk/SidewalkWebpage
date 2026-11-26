@@ -90,7 +90,7 @@ object ReportService {
   // The city reports page's tally reads every label in the city, so it is kept for hours rather than the report's one,
   // and a request that finds it cold waits only briefly: the pass keeps running and fills the cache for the next one
   // (#6041). How long the pass takes on a prod-sized city is unmeasured.
-  val QualityCacheKey: String               = "report:city-quality:v1"
+  val QualityCacheKey: String               = "report:city-quality:v2"
   val QualityFreshFor: FiniteDuration       = 1.hour
   val QualityMaxAge: FiniteDuration         = 12.hours
   val QualityColdWait: FiniteDuration       = 5.seconds
@@ -322,7 +322,6 @@ class ReportServiceImpl @Inject() (
   import ReportService.*
 
   private val BatchSize = 5000
-  private val logger    = play.api.Logger(this.getClass)
 
   // Names change rarely and a lookup is every request's first step, so a few minutes' staleness is the right trade.
   def regionSlugs: Future[Map[Int, String]] =
@@ -378,12 +377,12 @@ class ReportServiceImpl @Inject() (
    * Every counted label in the city folded into its region's tally, in one streamed pass. Keyed on the API row's region
    * before it becomes a [[ReportLabel]], which carries none, and counted by [[ReportRules.isCounted]], as the report is.
    *
-   * @return The tallies by region id, or None while a cold cache is still being filled. A failed pass is None too, so a
-   *         database error costs the page its quality columns rather than the page.
+   * @return The tallies, stamped with when the pass finished, or None while a cold cache is still being filled. A failed
+   *         pass is None too, so a database error costs the page its quality columns rather than the page.
    */
-  private def cityTallies: Future[Option[Map[Int, CoverageTally]]] =
+  private def cityTallies: Future[Option[CityTallies]] =
     swrCache
-      .staleWhileRevalidateWithin[Map[Int, CoverageTally]](
+      .staleWhileRevalidateWithin[CityTallies](
         QualityCacheKey, QualityFreshFor, QualityMaxAge, QualityColdWait, QualityFailureBackoff
       ) {
         apiService
@@ -393,11 +392,11 @@ class ReportServiceImpl @Inject() (
           .runFold(Map.empty[Int, CoverageTally]) { case (tallies, (regionId, label)) =>
             tallies.updated(regionId, tallies.getOrElse(regionId, CoverageTally.empty).add(label))
           }
+          .map(CityTallies(_, OffsetDateTime.now(ZoneOffset.UTC)))
       }
-      .recover { case e =>
-        logger.warn(s"The city reports page's label tally failed; showing it without quality figures: $e")
-        None
-      }
+      // Not logged here: SwrCache logs each failed pass once, and within its backoff every page view would otherwise
+      // log that same failure again.
+      .recover { case _ => None }
 
   /** Reads the region's rows, fresh from the cache if a recent report already did. */
   private def reportData(regionId: Int, streets: Seq[StreetAccessScoreForApi]): Future[ReportData] =

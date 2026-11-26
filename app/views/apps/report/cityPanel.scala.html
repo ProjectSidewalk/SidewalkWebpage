@@ -30,10 +30,10 @@
 @if(row.provisional) {<p class="reports-provisional">@Messages("report.city.provisional")</p>}
 @if(row.causes.nonEmpty) {
   <ul class="reports-panel__causes">
-    @for((labelType, size) <- row.causes) {
+    @for((labelType, share) <- report.barShares(row)) {
       <li>
         <span class="reports-panel__cause-name">@CityReportFormat.typeName(labelType)</span>
-        <span class="reports-bar@if(row.provisional){ reports-bar--provisional}" aria-hidden="true"><span class="reports-bar__seg" data-label-type="@labelType" data-share="@(if (report.barScale > 0) size / report.barScale else 0.0)"></span></span>
+        <span class="reports-bar@if(row.provisional){ reports-bar--provisional}" aria-hidden="true"><span class="reports-bar__seg" data-label-type="@labelType" data-share="@share"></span></span>
       </li>
     }
   </ul>
@@ -42,7 +42,7 @@
   @if(row.hasStreets) {
     <div class="reports-panel__fact">
       <dt>@Messages("report.city.col.explored")</dt>
-      <dd>@CityReportFormat.explored(row)@if(!row.scored && row.metersToFloor > 0){ · @Messages("report.city.togo", CityReportFormat.distance(row.metersToFloor))}</dd>
+      <dd>@CityReportFormat.explored(row)@for(toGo <- CityReportFormat.toGo(row)){ · @toGo}</dd>
     </div>
   }
   @fact(Messages("report.city.col.reviewed"), row.quality.flatMap(_.reviewedPercent).map(p => Messages("report.city.reviewed.value", p)))

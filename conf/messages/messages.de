@@ -1125,6 +1125,7 @@ report.city.summary.none = Noch keines der {0} Viertel hat einen Wert. AccessSco
 report.city.computing.scores = AccessScore berechnet die Werte dieser Stadt noch; das dauert nach einer Aktualisierung ein bis zwei Minuten. Die Viertel stehen unten ohne Werte; laden Sie die Seite gleich neu, um sie zu sehen.
 report.city.computing.quality = Die Beschriftungen hinter den Spalten zur Datenqualität werden noch gezählt. Laden Sie die Seite in ein paar Minuten neu, um sie zu sehen.
 report.city.computing.cell = Wird noch gezählt
+report.city.quality.counted = Zahlen zur Datenqualität zuletzt gezählt:
 report.city.lens.label = Karte einfärben nach
 report.city.lens.score = Wert
 report.city.lens.explored = Erkundet
