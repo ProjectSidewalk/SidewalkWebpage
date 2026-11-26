@@ -1,0 +1,65 @@
+@import models.report.{CityReport, CityReportFormat, CityReportRow, ReportFormat, ReportLinks}
+
+@*
+ * The selected neighborhood's profile beside the map on the city reports page (#6041), rendered here for the one the
+ * page opens on. `frontend/js/report/cityReportPanel.js` redraws the same markup on each selection from the page's data,
+ * so the two must keep the same structure and classes.
+ *
+ * @param report The page.
+ * @param row    The selected neighborhood.
+ *@
+@(report: CityReport, row: CityReportRow)(using request: RequestHeader, messages: Messages)
+
+@fact(label: String, value: Option[String]) = {
+  <div class="reports-panel__fact">
+    <dt>@label</dt>
+    <dd>@value.getOrElse(if (report.qualityReady) Messages("report.city.value.none") else Messages("report.city.computing.cell"))</dd>
+  </div>
+}
+
+<div class="reports-panel__head">
+  @row.score.score.map { score =>
+    <span class="reports-swatch reports-swatch--large" data-score="@score" aria-hidden="true"></span>
+    <p class="reports-panel__score">@ReportFormat.score(score)</p>
+  }.getOrElse {
+    <p class="reports-panel__score reports-panel__score--none">@Messages("report.score.none")</p>
+  }
+  <h2 class="reports-panel__name" id="reports-panel-name">@row.name</h2>
+</div>
+<p class="reports-panel__why">@CityReportFormat.why(row, report.scoresReady)</p>
+@if(row.provisional) {<p class="reports-provisional">@Messages("report.city.provisional")</p>}
+@if(row.causes.nonEmpty) {
+  <ul class="reports-panel__causes">
+    @for((labelType, size) <- row.causes) {
+      <li>
+        <span class="reports-panel__cause-name">@CityReportFormat.typeName(labelType)</span>
+        <span class="reports-bar@if(row.provisional){ reports-bar--provisional}" aria-hidden="true"><span class="reports-bar__seg" data-label-type="@labelType" data-share="@(if (report.barScale > 0) size / report.barScale else 0.0)"></span></span>
+      </li>
+    }
+  </ul>
+}
+<dl class="reports-panel__facts">
+  @if(row.hasStreets) {
+    <div class="reports-panel__fact">
+      <dt>@Messages("report.city.col.explored")</dt>
+      <dd>@CityReportFormat.explored(row)@if(!row.scored && row.metersToFloor > 0){ · @Messages("report.city.togo", CityReportFormat.distance(row.metersToFloor))}</dd>
+    </div>
+  }
+  @fact(Messages("report.city.col.reviewed"), row.quality.flatMap(_.reviewedPercent).map(p => Messages("report.city.reviewed.value", p)))
+  @fact(Messages("report.city.col.latest"), row.quality.flatMap(_.lastObservation).map(CityReportFormat.month))
+  @fact(Messages("report.city.col.imagery"), row.quality.flatMap(_.medianImageryYear).map(_.toString))
+  @fact(Messages("report.city.col.labelers"), row.quality.map(_.labelers.toString))
+  @fact(Messages("report.city.panel.observations"), row.quality.flatMap(CityReportFormat.density).map(d => Messages("report.city.density.value", ReportFormat.oneDecimal(d), controllers.helper.ControllerUtils.distanceUnitWords.abbr)))
+  @if(row.hasStreets) {
+    <div class="reports-panel__fact">
+      <dt>@Messages("report.city.panel.streets")</dt>
+      <dd>@CityReportFormat.distance(row.totalMeters)</dd>
+    </div>
+  }
+</dl>
+<p class="reports-panel__links">
+  <a class="reports-link" href="@ReportLinks.report(row.slug)" data-city-event="OpenReport">@Messages("report.city.link.report")</a>
+  @if(row.helpExplore) {
+    <a class="reports-link" href="@ReportLinks.explore(row.regionId)" data-city-event="HelpExplore">@Messages("report.city.link.explore")</a>
+  }
+</p>

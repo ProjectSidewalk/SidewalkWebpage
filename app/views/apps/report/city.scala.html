@@ -1,0 +1,132 @@
+@import models.report.{CityReport, CityReportFormat, ReportFormat}
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.JsValue
+@import views.ViewHelpers.jsonForScript
+@import service.CommonPageData
+@import views.html.apps.report as reportViews
+
+@*
+ * The city reports page (#6041): every neighborhood in the city on a map and in a table, sharing one selection, with a
+ * profile of the selected one beside the map. It says which neighborhoods score best and worst, what lowers each score,
+ * how complete the data behind it is, and leads to each neighborhood's own report.
+ *
+ * Scores are the neighborhood reports' own, so a row and its report can't disagree. While the city's scores or its
+ * label tally are still being computed, the page lists the neighborhoods without that part and says so.
+ *
+ * @param commonData Per-page config.
+ * @param user       The signed-in user, if any (navbar only).
+ * @param report     The page's rows.
+ * @param cityName   The deployment's formatted name, when known.
+ * @param clientData What the map, table and panel are drawn from; see [[models.report.CityReportClientData]].
+ *@
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: CityReport, cityName: Option[String],
+    clientData: JsValue
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@city = @{cityName.getOrElse("")}
+@dateLabel(date: java.time.LocalDate) = @{
+  date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.LONG)
+    .withLocale(messages.lang.toLocale))
+}
+@scored = @{report.scoredRows}
+@unscoredCount = @{report.rows.size - scored.size}
+@problemTypes = @{models.label.LabelType.ordered.map(_.name).filter(t => report.rows.exists(_.topTypes.headOption.contains(t)))}
+
+@common.main(commonData, Messages("report.city.seo.title", city), i18Namespaces = Seq("common", "report"), url = "/reports") {
+  @common.navbar(commonData, user)
+
+  <main class="reports-page" id="reports-page">
+    <header class="reports-head">
+      @common.toolHeader("reports")
+      <p class="reports-city">
+        @for(name <- cityName) {<span class="reports-city__name">@name</span>}
+        <span class="reports-badge">@Messages("report.beta.badge")</span>
+      </p>
+      <p class="reports-generated">@Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))</p>
+      <p class="reports-lede">@Messages("report.city.lede", city)</p>
+      @if(report.scoresReady) {
+        <p class="reports-summary" id="reports-summary">
+          @if(scored.isEmpty) {
+            @Messages("report.city.summary.none", report.rows.size, report.minCompletionPercent)
+          } else {
+            @if(scored.size == 1) {
+              @Messages("report.city.summary.one", report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name)
+            } else {
+              @Messages("report.city.summary", scored.size, report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name, ReportFormat.score(scored.last.score.score.get), scored.last.name)
+            }
+          }
+        </p>
+      } else {
+        <p class="reports-notice" id="reports-scores-computing" role="status">@Messages("report.city.computing.scores")</p>
+      }
+      @if(!report.qualityReady) {
+        <p class="reports-notice" id="reports-quality-computing" role="status">@Messages("report.city.computing.quality")</p>
+      }
+      @* Soft-launched, so the page says it's new and where to send what readers find, as a report does. *@
+      <p class="reports-beta">@Messages("report.beta.note") <a href="mailto:sidewalk@@cs.uw.edu" data-city-event="Feedback">sidewalk@@cs.uw.edu</a></p>
+    </header>
+
+    @* Shown once the script has wired them: without it they'd be buttons that do nothing. *@
+    <div class="reports-controls" id="reports-controls" hidden>
+      <div class="reports-control">
+        <span class="reports-control__label" id="reports-lens-label">@Messages("report.city.lens.label")</span>
+        <div class="reports-segmented" role="group" aria-labelledby="reports-lens-label">
+          <button type="button" class="reports-segmented__option" data-lens="score" aria-pressed="true">@Messages("report.city.lens.score")</button>
+          <button type="button" class="reports-segmented__option" data-lens="explored" aria-pressed="false">@Messages("report.city.lens.explored")</button>
+          <button type="button" class="reports-segmented__option" data-lens="problem" aria-pressed="false">@Messages("report.city.lens.problem")</button>
+        </div>
+      </div>
+      <div class="reports-control">
+        <span class="reports-control__label" id="reports-filter-label">@Messages("report.city.filter.label")</span>
+        <div class="reports-segmented" role="group" aria-labelledby="reports-filter-label">
+          <button type="button" class="reports-segmented__option" data-filter="all" aria-pressed="true">@Messages("report.city.filter.all", report.rows.size)</button>
+          <button type="button" class="reports-segmented__option" data-filter="scored" aria-pressed="false">@Messages("report.city.filter.scored", scored.size)</button>
+          <button type="button" class="reports-segmented__option" data-filter="unscored" aria-pressed="false">@Messages("report.city.filter.unscored", unscoredCount)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="reports-top">
+      <div class="reports-map-column">
+        <div class="reports-map" id="reports-map" role="region" aria-label="@Messages("report.city.map.label", city)"></div>
+        <div class="reports-legend" data-lens="score">
+          <span class="reports-legend__ramp" data-ramp="score" aria-hidden="true"></span>
+          <span class="reports-legend__ends"><span>@Messages("report.city.legend.lower")</span><span>@Messages("report.city.legend.higher")</span></span>
+          <span class="reports-legend__item"><span class="reports-legend__swatch reports-legend__swatch--none" aria-hidden="true"></span>@Messages("report.city.legend.unscored")</span>
+        </div>
+        <div class="reports-legend" data-lens="explored" hidden>
+          <span class="reports-legend__ramp" data-ramp="explored" aria-hidden="true"></span>
+          <span class="reports-legend__ends"><span>@Messages("report.city.legend.unexplored")</span><span>@Messages("report.city.legend.explored")</span></span>
+        </div>
+        <div class="reports-legend" data-lens="problem" hidden>
+          @for(labelType <- problemTypes) {
+            <span class="reports-legend__item"><span class="reports-legend__swatch" data-label-type="@labelType" aria-hidden="true"></span>@CityReportFormat.typeName(labelType)</span>
+          }
+          <span class="reports-legend__item"><span class="reports-legend__swatch reports-legend__swatch--none" aria-hidden="true"></span>@Messages("report.city.legend.problem.none")</span>
+        </div>
+      </div>
+      @for(row <- report.selected) {
+        <section class="reports-panel" id="reports-panel" data-region-id="@row.regionId" aria-labelledby="reports-panel-name" aria-live="polite">
+          @reportViews.cityPanel(report, row)
+        </section>
+      }
+    </div>
+
+    <section class="reports-table-section" aria-labelledby="reports-table-title">
+      <h2 class="reports-table-section__title" id="reports-table-title">@Messages("report.city.table.title")</h2>
+      <p class="reports-table-section__note">
+        @Messages("report.city.legend.bar")
+        @Messages("report.city.legend.floor", report.minCompletionPercent)
+      </p>
+      @* Wider than a tablet, so it scrolls sideways there; focusable so a keyboard can scroll it too. *@
+      <div class="reports-table-scroll" tabindex="0" role="region" aria-labelledby="reports-table-title">
+        @reportViews.cityTable(report, cityName)
+      </div>
+    </section>
+  </main>
+
+  <script type="application/json" id="reports-data">@jsonForScript(clientData)</script>
+  @ViteAssets.stylesheets("reports")
+  <script type="module" src='@assets.path("build/js/reports.js")'></script>
+}

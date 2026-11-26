@@ -79,6 +79,7 @@ export class NavbarController {
     'navbar-leaderboard-btn-user': 'Click_module=Leaderboard_from=UserDropdown',
     'navbar-labelmap-btn': 'Click_module=LabelMap',
     'navbar-labelmap-btn-tools': 'Click_module=LabelMap_from=ToolsDropdown',
+    'navbar-reports-btn': 'Click_module=Reports',
     'navbar-route-builder-btn': 'Click_module=RouteBuilder',
     'navbar-sign-out-btn': 'Click_module=SignOut',
     'navbar-admin-btn': 'Click_module=ToAdmin',

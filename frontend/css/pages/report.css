@@ -101,6 +101,12 @@
 
 /* ---- Title block ---------------------------------------------------------------------------------------------- */
 
+/* Back to the city's list of neighborhoods (#6041). */
+.report-breadcrumb {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-small-regular);
+}
+
 .report-eyebrow {
   margin: 0;
   font: var(--text-small-bold);

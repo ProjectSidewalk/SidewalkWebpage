@@ -5,7 +5,7 @@ import models.label.LabelType
 import models.report.{ReportLocation, ReportRules}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.time.{Seconds, Span}
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -17,7 +17,7 @@ import util.SidewalkSpec
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with ScalaFutures {
+class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with ScalaFutures with Eventually {
   implicit override val patienceConfig: PatienceConfig = PatienceConfig(timeout = Span(120, Seconds))
 
   override def fakeApplication(): Application =
@@ -73,6 +73,38 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
           fix.item.labelIds must contain(fix.label.labelId)
           fix.label.uncontested mustBe true
         }
+      }
+    }
+  }
+
+  "cityReport" must {
+    "list every neighborhood, and agree with the busiest one's own report once its two passes are ready" in {
+      // A cold suite starts both passes; the page renders without them, so wait for both to land in the cache.
+      val city = eventually(timeout(Span(300, Seconds)), interval(Span(2, Seconds))) {
+        val c = service.cityReport.futureValue
+        c.scoresReady mustBe true
+        c.qualityReady mustBe true
+        c
+      }
+      city.rows.map(_.regionId).toSet mustBe service.regionSlugs.futureValue.keySet
+
+      val busiest = app.injector.instanceOf[ApiService].getRegionWithMostLabels.futureValue
+      busiest.foreach { region =>
+        val report = service.neighborhoodReport(region.regionId).futureValue match {
+          case ReportOutcome.Ready(ready) => ready
+          case other                      => fail(s"Expected a report, got $other")
+        }
+        val row = city.rows.find(_.regionId == region.regionId).getOrElse(fail("The busiest region has no row"))
+        row.score mustBe report.score
+        val quality  = row.quality.getOrElse(fail("A ready quality pass left the busiest region without figures"))
+        val coverage = report.coverage
+        quality.observations mustBe coverage.observationIds.size
+        quality.labelers mustBe coverage.labelers
+        quality.lastObservation mustBe coverage.lastObservation
+        quality.medianImageryYear mustBe coverage.medianImageryYear
+        quality.reviewedPercent mustBe Option.when(coverage.observationIds.nonEmpty)(
+          math.round(100.0 * coverage.reviewedIds.size / coverage.observationIds.size).toInt
+        )
       }
     }
   }

@@ -42,6 +42,7 @@ function renderNavbar(languages = ['es', 'nl']) {
                 <li class="navbar-menu-section">Analyze</li>
                 <li><a id="navbar-gallery-btn" href="/gallery">Gallery</a></li>
                 <li><a id="navbar-labelmap-btn-tools" href="/labelMap">Label Map</a></li>
+                <li><a id="navbar-reports-btn" href="/reports">Reports <span class="navbar-badge">Beta</span></a></li>
                 <li class="navbar-menu-section">Community</li>
                 <li><a id="navbar-stories-btn" href="/stories">Stories</a></li>
               </ul>
@@ -273,7 +274,7 @@ describe('moving through an open menu', () => {
     press(document.activeElement, 'ArrowDown');
     expect(document.activeElement).toBe(el('navbar-stories-btn'));
     press(document.activeElement, 'ArrowUp');
-    expect(document.activeElement).toBe(el('navbar-labelmap-btn-tools'));
+    expect(document.activeElement).toBe(el('navbar-reports-btn'));
     press(document.activeElement, 'Home');
     expect(document.activeElement).toBe(el('navbar-gallery-btn'));
     // Up from the first link goes back to the menu's button.
@@ -366,6 +367,7 @@ describe('logging navbar clicks', () => {
     ['navbar-gallery-btn', 'Click_module=Gallery_location=Navbar_route=/explore'],
     ['navbar-sign-out-btn', 'Click_module=SignOut_location=Navbar_route=/explore'],
     ['navbar-cities-btn', 'Click_module=DeploymentSitesDashboard_location=Navbar_route=/explore'],
+    ['navbar-reports-btn', 'Click_module=Reports_location=Navbar_route=/explore'],
   ])('logs a click on %s as its own module', (id, logged) => {
     mouseClick(el(id));
 
