@@ -57,6 +57,16 @@ describe('renderPanel', () => {
     expect(root.dataset.regionId).toBe('7');
   });
 
+  test('puts every fact and cause name on the page as text, never as markup', () => {
+    const root = panel();
+    const row = { ...ROW, text: { ...ROW.text, labelers: '<i>7</i>', latest: '<u>Oct</u> 2026' } };
+    renderPanel(root, row, { ...PAGE, typeNames: { ...PAGE.typeNames, NoSidewalk: '<em>No Sidewalk</em>' } });
+    expect(root.querySelector('i, u, em')).toBeNull();
+    const values = [...root.querySelectorAll('dd')].map((dd) => dd.textContent);
+    expect(values).toEqual(expect.arrayContaining(['<i>7</i>', '<u>Oct</u> 2026']));
+    expect(root.querySelector('.reports-panel__cause-name').textContent).toBe('<em>No Sidewalk</em>');
+  });
+
   test('draws a bar per cause at its share, and offers Explore only when the row asks for help', () => {
     const root = panel();
     renderPanel(root, ROW, PAGE);

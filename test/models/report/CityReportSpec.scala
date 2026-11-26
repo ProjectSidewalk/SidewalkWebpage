@@ -340,6 +340,12 @@ class CityReportSpec extends AnyFunSuite with Matchers {
     // A scored region has nothing to go.
     val past = build(Seq(3), Seq(completion(3, 900)), Some(AccessScores(Seq(street(1, 3)), Seq.empty)))
     CityReportFormat.toGo(row(past, 3))(using summon[RequestHeader], messagesIn("metric")) shouldBe None
+    // Nor does one the whole-percent floor scores just short of it: 79.7% rounds to 80, though 10 m remain.
+    val floored =
+      build(Seq(4), Seq(completion(4, 2390, total = 3000)), Some(AccessScores(Seq(street(2, 4)), Seq.empty)))
+    row(floored, 4).scored shouldBe true
+    row(floored, 4).metersToFloor should be > 0.0
+    CityReportFormat.toGo(row(floored, 4))(using summon[RequestHeader], messagesIn("metric")) shouldBe None
   }
 
   test("says a region with no streets has none, and doesn't call a partly explored one with no score unexplored") {
