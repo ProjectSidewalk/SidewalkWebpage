@@ -129,9 +129,10 @@
       </p>
       @* Shown on a phone, above the header row that becomes a row of sort buttons there. *@
       <p class="reports-sort-label" aria-hidden="true">@Messages("report.city.sort.label")</p>
-      @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then;
-         reports.js drops it from the tab order wherever nothing overflows. No landmark of its own: the section is one. *@
-      <div class="reports-table-scroll" id="reports-table-scroll" tabindex="0">
+      @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then, and a
+         named group so a screen reader says what took focus; reports.js drops all three wherever nothing overflows. A
+         group, not a region: the section is already the landmark. *@
+      <div class="reports-table-scroll" id="reports-table-scroll" tabindex="0" role="group" aria-labelledby="reports-table-title">
         @reportViews.cityTable(report, cityName)
       </div>
     </section>

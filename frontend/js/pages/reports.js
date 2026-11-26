@@ -70,13 +70,22 @@ function localizeTimes(root) {
 
 /**
  * Keeps the table's scroller a tab stop only while it has something to scroll: on a phone the table becomes cards and
- * a stop there would scroll nothing.
+ * a stop there would scroll nothing. While it is one, it is a group named by the table's heading, so focusing it says
+ * what it is; otherwise it is a plain box, so a screen reader doesn't announce a group it can't stop on.
  * @param {HTMLElement} scroller - The table's scroll container.
  */
 function focusableWhileScrolling(scroller) {
+  const labelledBy = scroller.getAttribute('aria-labelledby');
   const update = () => {
-    if (scroller.scrollWidth > scroller.clientWidth) scroller.setAttribute('tabindex', '0');
-    else scroller.removeAttribute('tabindex');
+    if (scroller.scrollWidth > scroller.clientWidth) {
+      scroller.setAttribute('tabindex', '0');
+      scroller.setAttribute('role', 'group');
+      if (labelledBy) scroller.setAttribute('aria-labelledby', labelledBy);
+    } else {
+      scroller.removeAttribute('tabindex');
+      scroller.removeAttribute('role');
+      scroller.removeAttribute('aria-labelledby');
+    }
   };
   update();
   new ResizeObserver(update).observe(scroller);

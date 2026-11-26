@@ -79,8 +79,9 @@ test.describe('/reports', () => {
     const scroller = page.locator('#reports-table-scroll');
     const {client, scroll} = await scroller.evaluate((s) => ({client: s.clientWidth, scroll: s.scrollWidth}));
     expect(scroll, 'the table scrolls sideways on a desktop').toBeLessThanOrEqual(client);
-    // Nothing to scroll, so no tab stop that scrolls nothing.
+    // Nothing to scroll, so no tab stop that scrolls nothing, and no group to announce.
     await expect(scroller).not.toHaveAttribute('tabindex');
+    await expect(scroller).not.toHaveAttribute('role');
     // The links column ends inside the scroller, not past its right edge.
     const link = await page.locator('#reports-table tbody tr:first-child a[data-city-event="OpenReport"]').boundingBox();
     const box = await scroller.boundingBox();
@@ -89,18 +90,25 @@ test.describe('/reports', () => {
 
   // Between the phone layout and a wide desktop (a tablet, or a desktop zoomed to 125-150%) the table may be wider than
   // the page. Then it scrolls inside its own box and the page stays put, whatever in the table is absolutely placed.
-  test('scrolls only the table from 769px to 1199px', async ({page}) => {
+  test('scrolls only the table from 769 to 1199px, and names the scroller where it is a tab stop', async ({page}) => {
     await page.setViewportSize({width: 769, height: 900});
     await openReports(page);
     const scroller = page.locator('#reports-table-scroll');
+    const title = (await page.locator('#reports-table-title').textContent()).trim();
     for (const width of [769, 900, 1016, 1100]) {
       await page.setViewportSize({width, height: 900});
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       expect(overflow, `the page scrolls sideways at ${width}px`).toBeLessThanOrEqual(0);
       const scrolls = await scroller.evaluate((s) => s.scrollWidth > s.clientWidth);
-      // A keyboard can scroll it exactly where it scrolls.
-      if (scrolls) await expect(scroller, `${width}px`).toHaveAttribute('tabindex', '0');
-      else await expect(scroller, `${width}px`).not.toHaveAttribute('tabindex');
+      if (scrolls) {
+        // A keyboard can scroll it, and a screen reader says what took focus.
+        await expect(scroller, `${width}px`).toHaveAttribute('tabindex', '0');
+        await expect(scroller, `${width}px`).toHaveRole('group');
+        await expect(scroller, `${width}px`).toHaveAccessibleName(title);
+      } else {
+        await expect(scroller, `${width}px`).not.toHaveAttribute('tabindex');
+        await expect(scroller, `${width}px`).not.toHaveAttribute('role');
+      }
     }
   });
 
