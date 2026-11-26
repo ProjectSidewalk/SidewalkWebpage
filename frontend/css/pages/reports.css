@@ -498,8 +498,26 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--space-xxs) var(--space-sm);
-    padding: var(--space-sm) 0;
+    padding: var(--space-sm) var(--space-xs);
     border-bottom: 1px solid var(--color-neutral-300);
+  }
+
+  /* A card tints as one piece: per-cell tints would leave the grid's gaps white. */
+  .reports-table tbody tr.is-hovered {
+    background: var(--color-neutral-100);
+  }
+
+  .reports-table tbody tr.is-selected {
+    background: var(--color-pine-100);
+    box-shadow: inset 3px 0 var(--color-asphalt-500);
+  }
+
+  .reports-table tbody tr.is-hovered > th,
+  .reports-table tbody tr.is-hovered > td,
+  .reports-table tbody tr.is-selected > th,
+  .reports-table tbody tr.is-selected > td {
+    background: none;
+    box-shadow: none;
   }
 
   .reports-table tbody tr[hidden] {
