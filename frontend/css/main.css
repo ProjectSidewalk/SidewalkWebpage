@@ -165,6 +165,12 @@
   --color-score-ramp-dark-4: var(--color-jade-500);
   --color-score-ramp-dark-5: var(--color-jade-300);
 
+  /* The city reports page's "Explored" map lens (#6041): a neighborhood's explored share, none to all, interpolated
+     between these two. One hue that only darkens, so it can't be read as the score ramp; the share also travels as
+     text in the table and panel. */
+  --color-explored-ramp-low: var(--color-pine-100);
+  --color-explored-ramp-high: var(--color-pine-800);
+
   /* Street slope classes, gentlest → steepest (#5223), read through AccessScoreGradeRamp. A single blue hue that only
      darkens, so it cannot be taken for the score ramp it replaces on the map, and so the order survives any color
      vision deficiency on lightness alone. Step 1 is 2.1:1 on the basemap on purpose: a level street should recede.
@@ -1680,6 +1686,16 @@ kbd {
 .navbar-menu li > a:focus .navbar-menu-icon,
 .navbar-menu li > a.is-active .navbar-menu-icon {
   opacity: 1;
+}
+
+/* "Beta" beside a menu item whose page is new (#6041), in the same banana as the badge on that page's header. */
+.navbar-badge {
+  flex: none;
+  padding: 0 var(--space-xs);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  background: var(--color-banana-300);
+  border-radius: var(--border-radius-lg);
 }
 
 /* Rule setting Sign out apart from the destinations above it. */

@@ -1,0 +1,538 @@
+/* The city reports page (#6041): the header, the lens and filter controls, the map with the selected neighborhood's
+   profile beside it, and the table of every neighborhood below. A plain page: nothing is pinned and nothing scrolls
+   inside it except the table's sideways overflow on a tablet. Colors that mean something (the score ramp, the label
+   types) are painted by pages/reports.js from the tokens; this sheet only lays the pieces out. */
+
+.reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  max-width: 1200px;
+  padding: var(--space-lg) var(--space-md) var(--space-xxl);
+  margin: 0 auto;
+}
+
+.reports-page a {
+  color: var(--color-link-200);
+}
+
+/* ---- Header --------------------------------------------------------------------------------------------------- */
+
+.reports-head > .ps-tool-header {
+  margin-bottom: var(--space-sm);
+}
+
+.reports-city {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.reports-badge {
+  display: inline-block;
+  padding: 0 var(--space-xs);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  background: var(--color-banana-300);
+  border-radius: var(--border-radius-lg);
+}
+
+.reports-generated,
+.reports-beta {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-lede,
+.reports-summary {
+  max-width: 75ch;
+  margin: var(--space-sm) 0 0;
+  font: var(--text-prose-regular);
+}
+
+.reports-summary {
+  font: var(--text-body-bold);
+}
+
+.reports-notice {
+  max-width: 75ch;
+  padding: var(--space-xs) var(--space-sm);
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  background: var(--color-banana-100);
+  border-left: 4px solid var(--color-banana-700);
+}
+
+/* ---- Controls: two segmented button groups ----------------------------------------------------------------- */
+
+.reports-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reports-controls[hidden] {
+  display: none;
+}
+
+.reports-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.reports-control__label {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+.reports-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  overflow: hidden;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--border-radius);
+}
+
+/* 32px tall, past the 24px a pointer needs (WCAG 2.5.8). */
+.reports-segmented__option {
+  min-height: 32px;
+  padding: var(--space-xxs) var(--space-sm);
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+  cursor: pointer;
+  background: var(--color-neutral-white);
+  border: 0;
+  border-right: 1px solid var(--color-neutral-400);
+}
+
+.reports-segmented__option:last-child {
+  border-right: 0;
+}
+
+.reports-segmented__option[aria-pressed="true"] {
+  color: var(--color-neutral-white);
+  background: var(--color-asphalt-500);
+}
+
+.reports-segmented__option:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* ---- Map and panel ------------------------------------------------------------------------------------------ */
+
+.reports-top {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+/* var(--breakpoint-sm): the panel goes under the map. */
+@media (width <= 768px) {
+  .reports-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.reports-map {
+  height: 440px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius-lg);
+}
+
+@media (width <= 768px) {
+  .reports-map {
+    height: 320px;
+  }
+}
+
+.reports-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-md);
+  align-items: center;
+  margin-top: var(--space-xs);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-legend[hidden] {
+  display: none;
+}
+
+.reports-legend__ramp {
+  display: block;
+  flex: 1 1 100%;
+  height: 10px;
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-legend__ends {
+  display: flex;
+  flex: 1 1 100%;
+  justify-content: space-between;
+}
+
+.reports-legend__item {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+}
+
+.reports-legend__swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-legend__swatch--none {
+  background: var(--color-neutral-200);
+  border: 1px solid var(--color-neutral-400);
+}
+
+.reports-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+}
+
+.reports-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.reports-panel__score {
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.reports-panel__score--none {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+/* The primary font rather than the accent one: neighborhood names can hold digits. */
+.reports-panel__name {
+  flex: 1 1 100%;
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.reports-panel__why {
+  margin: 0;
+  font: var(--text-body-regular);
+}
+
+.reports-panel__causes {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-xxs) var(--space-sm);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.reports-panel__causes li {
+  display: contents;
+}
+
+.reports-panel__cause-name {
+  font: var(--text-small-regular);
+}
+
+.reports-panel__facts {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-xxs) var(--space-sm);
+  margin: 0;
+  font: var(--text-small-regular);
+}
+
+.reports-panel__fact {
+  display: contents;
+}
+
+.reports-panel__fact dt {
+  color: var(--color-neutral-800);
+}
+
+.reports-panel__fact dd {
+  margin: 0;
+}
+
+.reports-panel__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin: 0;
+}
+
+/* ---- Bars and swatches, shared by the panel and the table ----------------------------------------------------- */
+
+.reports-swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-right: var(--space-xxs);
+  vertical-align: middle;
+  background: var(--color-neutral-200);
+  border-radius: 50%;
+}
+
+.reports-swatch--large {
+  width: 20px;
+  height: 20px;
+}
+
+/* One segment per type that lowers the score, in its label color, all on the city's one scale. */
+.reports-bar {
+  display: flex;
+  width: 100%;
+  min-width: 120px;
+  height: 12px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-bar__seg {
+  display: block;
+  height: 100%;
+}
+
+/* Not a score yet, so it is drawn as a sketch of one. */
+.reports-bar--provisional {
+  opacity: 0.55;
+  outline: 1px dashed var(--color-neutral-700);
+  outline-offset: 1px;
+}
+
+.reports-provisional {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-explored {
+  position: relative;
+  display: inline-block;
+  width: 80px;
+  height: 8px;
+  margin-right: var(--space-xs);
+  vertical-align: middle;
+  background: var(--color-neutral-200);
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-explored__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-asphalt-500);
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-explored__fill--short {
+  background: var(--color-neutral-600);
+}
+
+/* The completion floor: past it, a neighborhood is scored. */
+.reports-explored__floor {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--color-orange-600);
+}
+
+.reports-muted {
+  color: var(--color-neutral-800);
+}
+
+/* ---- Table -------------------------------------------------------------------------------------------------- */
+
+.reports-table-section__title {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-h3-bold);
+}
+
+.reports-table-section__note {
+  max-width: 90ch;
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-table-scroll {
+  overflow-x: auto;
+}
+
+.reports-table-scroll:focus-visible {
+  outline: 2px solid var(--color-link-200);
+}
+
+.reports-table {
+  min-width: 1080px;
+  font-variant-numeric: tabular-nums;
+}
+
+.reports-table th,
+.reports-table td {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+/* A row's header is its name and sentence, so it reads as a cell, not as the column headers do. */
+.reports-table tbody th {
+  min-width: 200px;
+  font: var(--text-small-regular);
+  white-space: normal;
+  background: none;
+  border-bottom-width: 1px;
+}
+
+.reports-table td[data-column="why"] {
+  min-width: 160px;
+}
+
+.reports-table th.is-lens {
+  box-shadow: inset 0 -3px var(--color-asphalt-500);
+}
+
+.reports-table__sort,
+.reports-table__select {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.reports-table__select {
+  font: var(--text-small-bold);
+  color: var(--color-link-200);
+}
+
+.reports-table__sort:focus-visible,
+.reports-table__select:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* The arrow says which way the sorted column runs; aria-sort says it to a screen reader. */
+.reports-table th[aria-sort="ascending"] .reports-table__sort::after {
+  content: " ▲";
+}
+
+.reports-table th[aria-sort="descending"] .reports-table__sort::after {
+  content: " ▼";
+}
+
+.reports-why {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-table tbody tr.is-hovered > * {
+  background: var(--color-neutral-100);
+}
+
+.reports-table tbody tr.is-selected > * {
+  background: var(--color-pine-100);
+}
+
+.reports-table tbody tr.is-selected > th {
+  box-shadow: inset 3px 0 var(--color-asphalt-500);
+}
+
+.reports-link {
+  white-space: nowrap;
+}
+
+/* Stacked, one per line, so the column stays narrow. */
+.reports-table td[data-column="links"] .reports-link {
+  display: block;
+}
+
+/* var(--breakpoint-sm): each row becomes a short card, its cells labeled from their column, so nothing scrolls
+   sideways. */
+@media (width <= 768px) {
+  .reports-table {
+    min-width: 0;
+  }
+
+  .reports-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .reports-table,
+  .reports-table tbody {
+    display: block;
+  }
+
+  .reports-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-xxs) var(--space-sm);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-neutral-300);
+  }
+
+  .reports-table tbody tr[hidden] {
+    display: none;
+  }
+
+  .reports-table tbody th,
+  .reports-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .reports-table tbody th,
+  .reports-table td[data-column="why"],
+  .reports-table td[data-column="links"] {
+    grid-column: 1 / -1;
+  }
+
+  .reports-table td[data-column="links"] {
+    display: flex;
+    gap: var(--space-md);
+  }
+
+  .reports-table td[data-label]::before {
+    display: block;
+    font: var(--text-caption-semibold);
+    color: var(--color-neutral-800);
+    content: attr(data-label);
+  }
+
+  .reports-table td[data-column="why"]:empty {
+    display: none;
+  }
+}

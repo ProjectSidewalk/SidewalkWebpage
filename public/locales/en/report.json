@@ -26,5 +26,20 @@
     "unavailable": "Couldn't load this label's card.",
     "loading": "Loading…",
     "rejected": "Every label here was marked incorrect after this report's scores were last computed, so there's no card to show."
+  },
+  "city": {
+    "explored": "Explored",
+    "reviewed": "Reviewed",
+    "latest": "Latest observation",
+    "imagery": "Imagery from",
+    "labelers": "Labelers",
+    "observations": "Observations",
+    "streets": "Streets",
+    "provisional": "Provisional: from the part explored so far",
+    "open-report": "Open report",
+    "help-explore": "Help explore",
+    "not-scored": "Not scored yet",
+    "counting": "Still counting",
+    "no-data": "No data"
   }
 }

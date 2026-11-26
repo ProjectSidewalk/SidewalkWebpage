@@ -24,5 +24,20 @@
     "unavailable": "無法載入此標籤的卡片。",
     "loading": "載入中…",
     "rejected": "此處的所有標籤在本報告分數上次計算後都被標記為不正確，因此沒有可顯示的卡片。"
+  },
+  "city": {
+    "explored": "已探索",
+    "reviewed": "已審查",
+    "latest": "最新觀察",
+    "imagery": "影像年份",
+    "labelers": "標記者",
+    "observations": "觀察",
+    "streets": "街道",
+    "provisional": "暫定：依據目前已探索的部分",
+    "open-report": "開啟報告",
+    "help-explore": "協助探索",
+    "not-scored": "尚未評分",
+    "counting": "統計中",
+    "no-data": "無資料"
   }
 }
