@@ -41,6 +41,9 @@ case class ReportLabel(
 ) {
   def humanVotes: Int = humanAgree + humanDisagree + humanUnsure
 
+  /** At least one person voted on it, whichever way: what the report counts as reviewed. */
+  def reviewed: Boolean = humanVotes > 0
+
   /** More human reviewers agreed than disagreed: what the report calls confirmed. */
   def confirmed: Boolean = humanAgree > humanDisagree
 
@@ -674,9 +677,8 @@ object Coverage {
       auditedMeters: Double,
       today: LocalDate
   ): Coverage = {
-    val years     = counted.flatMap(_.imageryYear).sorted
-    val dates     = counted.map(_.timeCreated.toLocalDate)
-    val cutoff    = today.getYear - OldImageryYears
+    // The figures the city reports page states too come from the same tally it folds, so the two can't disagree.
+    val tally     = counted.foldLeft(CoverageTally.empty)(_.add(_))
     val clustered = locations.flatMap(_.labelIds).toSet
     Coverage(
       totalMeters = totalMeters,
@@ -686,15 +688,83 @@ object Coverage {
       unclusteredIds = counted
         .filter(l => AccessScoreCalculator.scoredTypeNames(l.labelType.name) && !clustered(l.labelId))
         .map(_.labelId),
-      labelers = counted.map(_.userId).distinct.size,
-      firstObservation = dates.minOption,
-      lastObservation = dates.maxOption,
-      reviewedIds = counted.filter(_.humanVotes > 0).map(_.labelId),
+      labelers = tally.labelers.size,
+      firstObservation = tally.firstObservation,
+      lastObservation = tally.lastObservation,
+      reviewedIds = counted.filter(_.reviewed).map(_.labelId),
       confirmedIds = counted.filter(_.confirmed).map(_.labelId),
-      medianImageryYear = Option.when(years.nonEmpty)(years(years.size / 2)),
-      oldImageryPercent = Option.when(years.nonEmpty)(math.round(100.0 * years.count(_ < cutoff) / years.size).toInt)
+      medianImageryYear = tally.medianImageryYear,
+      oldImageryPercent = tally.oldImageryPercent(today)
     )
   }
+}
+
+/**
+ * A region's coverage figures as a running tally (#6041), so they can be folded label by label from a stream the size of
+ * a whole city without holding its labels. [[Coverage.from]] folds the same tally over a list, which is what makes a
+ * figure on the city reports page the one its neighborhood report states.
+ *
+ * @param observations     Counted labels folded in
+ * @param reviewed         How many of them at least one person voted on
+ * @param labelers         The distinct people behind them
+ * @param firstObservation The date of the earliest
+ * @param lastObservation  The date of the latest
+ * @param imageryYears     How many have imagery from each year, among those whose capture date names one
+ */
+case class CoverageTally(
+    observations: Int,
+    reviewed: Int,
+    labelers: Set[String],
+    firstObservation: Option[LocalDate],
+    lastObservation: Option[LocalDate],
+    imageryYears: Map[Int, Int]
+) {
+
+  /** @return The tally with one more counted label in it. */
+  def add(label: ReportLabel): CoverageTally = {
+    val day = label.timeCreated.toLocalDate
+    CoverageTally(
+      observations = observations + 1,
+      reviewed = reviewed + (if (label.reviewed) 1 else 0),
+      labelers = labelers + label.userId,
+      firstObservation = Some(firstObservation.fold(day)(d => if (day.isBefore(d)) day else d)),
+      lastObservation = Some(lastObservation.fold(day)(d => if (day.isAfter(d)) day else d)),
+      imageryYears =
+        label.imageryYear.fold(imageryYears)(y => imageryYears.updated(y, imageryYears.getOrElse(y, 0) + 1))
+    )
+  }
+
+  private def datedCount: Int = imageryYears.values.sum
+
+  /**
+   * The upper median capture year: the one at index `n / 2` of the years sorted, one per label, so an even count takes
+   * the later of its middle two, as the report always has.
+   *
+   * @return The year, or None when no label has a usable date.
+   */
+  def medianImageryYear: Option[Int] = {
+    val target = datedCount / 2
+    imageryYears.toSeq.sorted
+      .scanLeft((0, Option.empty[Int])) { case ((seen, _), (year, count)) => (seen + count, Some(year)) }
+      .collectFirst { case (seen, year) if seen > target => year }
+      .flatten
+  }
+
+  /**
+   * @param today The date imagery age is measured from
+   * @return The share of dated labels on imagery over [[Coverage.OldImageryYears]] years old, whole percent; None when
+   *         no label has a usable date.
+   */
+  def oldImageryPercent(today: LocalDate): Option[Int] = {
+    val cutoff = today.getYear - Coverage.OldImageryYears
+    Option.when(datedCount > 0) {
+      math.round(100.0 * imageryYears.collect { case (y, n) if y < cutoff => n }.sum / datedCount).toInt
+    }
+  }
+}
+
+object CoverageTally {
+  val empty: CoverageTally = CoverageTally(0, 0, Set.empty, None, None, Map.empty)
 }
 
 /**
