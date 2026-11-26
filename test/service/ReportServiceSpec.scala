@@ -88,24 +88,32 @@ class ReportServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Scala
       }
       city.rows.map(_.regionId).toSet mustBe service.regionSlugs.futureValue.keySet
 
-      val busiest = app.injector.instanceOf[ApiService].getRegionWithMostLabels.futureValue
-      busiest.foreach { region =>
-        val report = service.neighborhoodReport(region.regionId).futureValue match {
-          case ReportOutcome.Ready(ready) => ready
-          case other                      => fail(s"Expected a report, got $other")
-        }
-        val row = city.rows.find(_.regionId == region.regionId).getOrElse(fail("The busiest region has no row"))
-        row.score mustBe report.score
-        val quality  = row.quality.getOrElse(fail("A ready quality pass left the busiest region without figures"))
-        val coverage = report.coverage
-        quality.observations mustBe coverage.observationIds.size
-        quality.labelers mustBe coverage.labelers
-        quality.lastObservation mustBe coverage.lastObservation
-        quality.medianImageryYear mustBe coverage.medianImageryYear
-        quality.reviewedPercent mustBe Option.when(coverage.observationIds.nonEmpty)(
-          math.round(100.0 * coverage.reviewedIds.size / coverage.observationIds.size).toInt
-        )
+      // Asserted, not skipped: CI's seed and every dev city have a labeled region, and a comparison that can pass
+      // without comparing anything guards nothing.
+      val region = app.injector
+        .instanceOf[ApiService]
+        .getRegionWithMostLabels
+        .futureValue
+        .getOrElse(fail("The connected database has no labeled region to compare a row with"))
+      val report = service.neighborhoodReport(region.regionId).futureValue match {
+        case ReportOutcome.Ready(ready) => ready
+        case other                      => fail(s"Expected a report, got $other")
       }
+      val row = city.rows.find(_.regionId == region.regionId).getOrElse(fail("The busiest region has no row"))
+      row.score mustBe report.score
+      // The row's bar is drawn from the same terms as the report's own bars.
+      row.contributions.keySet mustBe report.contributions.keySet
+      report.contributions.foreach { case (t, v) => row.contributions(t) mustBe (v +- 1e-9) }
+      val quality  = row.quality.getOrElse(fail("A ready quality pass left the busiest region without figures"))
+      val coverage = report.coverage
+      quality.observations mustBe coverage.observationIds.size
+      quality.observations must be > 0
+      quality.labelers mustBe coverage.labelers
+      quality.lastObservation mustBe coverage.lastObservation
+      quality.medianImageryYear mustBe coverage.medianImageryYear
+      quality.reviewedPercent mustBe Option.when(coverage.observationIds.nonEmpty)(
+        math.round(100.0 * coverage.reviewedIds.size / coverage.observationIds.size).toInt
+      )
     }
   }
 
