@@ -261,3 +261,31 @@ test.describe('/reports without a script', () => {
     expect(label, 'a card cell names its column').not.toBe('none');
   });
 });
+
+// The server prints the header's times in UTC and the page restates them in the reader's zone, so "Generated" and
+// "last counted" can't disagree about the day. One zone well ahead of UTC and one well behind: whatever the hour, at
+// least one of them is on another day than UTC, so a page that skipped the restatement fails there.
+for (const timezoneId of ['Pacific/Kiritimati', 'Pacific/Pago_Pago']) {
+  test.describe(`/reports in ${timezoneId}`, () => {
+    test.use({timezoneId, viewport: {width: 1440, height: 900}});
+
+    test('restates the header\'s times in the reader\'s own zone', async ({page}) => {
+      await openReports(page);
+      const times = page.locator('.reports-generated time');
+      await expect(times.first()).toHaveAttribute('datetime', /Z$/);
+      const read = await times.evaluateAll((elements, zone) => elements.map((t) => {
+        const at = new Date(t.getAttribute('datetime'));
+        const lang = document.documentElement.lang;
+        // The page's own formats (reports.js): a long date, and util.SHORT_DATE_TIME.
+        const expected = t.hasAttribute('data-local-date')
+          ? at.toLocaleDateString(lang, {dateStyle: 'long', timeZone: zone})
+          : at.toLocaleString(lang, {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric',
+            minute: '2-digit', timeZone: zone});
+        return {text: t.textContent.trim(), expected};
+      }), timezoneId);
+      // "Generated" always; "last counted" once the tally is in.
+      expect(read.length).toBeGreaterThanOrEqual(1);
+      for (const {text, expected} of read) expect(text).toBe(expected);
+    });
+  });
+}

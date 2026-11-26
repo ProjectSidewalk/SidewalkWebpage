@@ -29,6 +29,9 @@
   date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.LONG)
     .withLocale(messages.lang.toLocale))
 }
+@* Printed as its UTC date, like the tally's time below, and restated with it by reports.js in the reader's own zone,
+   so the two can't disagree about the day. *@
+@generatedTime = {<time datetime="@report.generatedAt.toInstant.toString" data-local-date>@dateLabel(report.generatedAt.toLocalDate)</time>}
 @scored = @{report.scoredRows}
 @unscoredCount = @{report.rows.size - scored.size}
 @problemTypes = @{models.label.LabelType.ordered.map(_.name).filter(t => report.rows.exists(_.topTypes.headOption.contains(t)))}
@@ -43,9 +46,10 @@
         @for(name <- cityName) {<span class="reports-city__name">@name</span>}
         <span class="reports-badge">@Messages("report.beta.badge")</span>
       </p>
-      <p class="reports-generated">@Messages("report.generated", dateLabel(report.generatedAt.toLocalDate))</p>
+      @* Html: the message is our own text, and its one argument is the escaped markup above. *@
+      <p class="reports-generated">@Html(Messages("report.generated", generatedTime.body))</p>
       @* The tally is cached for hours, so the page says how old its quality figures are rather than letting "Generated"
-         speak for them. Printed in UTC; reports.js restates it in the reader's own time zone. *@
+         speak for them. Printed in UTC; reports.js restates it in the reader's own time zone, as it does "Generated". *@
       @for(countedAt <- report.qualityCountedAt) {
         <p class="reports-generated" id="reports-quality-counted">@Messages("report.city.quality.counted") <time datetime="@countedAt.toInstant.toString" data-local-time>@countedAt.format(java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT).withLocale(messages.lang.toLocale)) UTC</time></p>
       }

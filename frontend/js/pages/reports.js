@@ -56,15 +56,23 @@ function paintLegends() {
   }
 }
 
+/** How a restated date alone reads: the server's long date (`FormatStyle.LONG`). */
+const LONG_DATE = Object.freeze({ dateStyle: 'long' });
+
 /**
- * Restates each server-printed UTC time in the reader's own time zone and language.
+ * Restates each server-printed UTC time in the reader's own time zone and language: `data-local-time` as a date and
+ * time, `data-local-date` as a date alone. Both are restated, or a reader east of UTC could see a page generated a day
+ * before the figures on it were counted.
  * @param {ParentNode} root - Where to look.
  */
 function localizeTimes(root) {
-  for (const element of root.querySelectorAll('time[data-local-time]')) {
+  for (const element of root.querySelectorAll('time[data-local-time], time[data-local-date]')) {
     const time = /** @type {HTMLTimeElement} */ (element);
     const date = new Date(time.dateTime);
-    if (!Number.isNaN(date.getTime())) time.textContent = date.toLocaleString(i18next.language, util.SHORT_DATE_TIME);
+    if (Number.isNaN(date.getTime())) continue;
+    time.textContent = time.hasAttribute('data-local-date')
+      ? date.toLocaleDateString(i18next.language, LONG_DATE)
+      : date.toLocaleString(i18next.language, util.SHORT_DATE_TIME);
   }
 }
 
