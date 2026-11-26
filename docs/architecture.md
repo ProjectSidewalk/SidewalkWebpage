@@ -542,6 +542,31 @@ card costs and the street order all follow. The page never shows numbers from tw
 must not pass for AccessScore's own, so a stamp stays in the header and in print, and every score links to the tool
 under the same weights.
 
+### City reports page (`/reports`)
+
+The city's neighborhood reports in one page (#6041), reached from the Tools menu's Reports item on every device, with
+a link back from each report. One row per region in `CityReport` (`models/report/CityReport.scala`, pure code): the
+neighborhood report's own score (`NeighborhoodScore.from`, so the row and the report it opens can't disagree), scored
+only past AccessScore's completion floor (`AccessScoreSpotlight.MinRegionCompletion`); what lowers it, as each scored
+label type's mean signed contribution (`ReportService.contributions`, the report's own), drawn as bars on one scale
+for the whole city; and how much to trust it: explored share, reviewed share, latest observation, median imagery year,
+labelers and observations per explored distance. Below the floor the bars are drawn as provisional, from the part
+explored so far; the legend says slope, which isn't a label type, lowers some scores without being in them.
+
+`ReportService.cityReport` reads the same `getFullCityScores` cache as the reports. The quality columns come from one
+streamed pass over the city's raw labels (`ApiService.getRawLabels`), folded per region into `CoverageTally`, the
+same fold `Coverage.from` uses for a single report, and cached stale-while-revalidate (`ReportService.QualityCacheKey`,
+fresh an hour, kept twelve). Neither pass blocks the page for long: while scores or the tally are cold, it renders its
+rows without them and says what it is waiting for, rather than answering 503 as a report does. A failed tally leaves
+the quality columns "still counting" and logs a warning.
+
+The header, table and the first neighborhood's profile are server-rendered; `frontend/js/report/` adds the rest. One
+`CityReportState` holds the selection, hover, lens, filter and sort, and the map (`CityReportMap`, MapLibre over the
+city's PMTiles with the `/regions` polygons, so no billable Google or Mapbox call), the table (`CityReportTable`) and
+the profile panel each draw from it. The table is the keyboard and screen-reader path to the neighborhoods; on a phone
+its rows become labeled cards. Every sentence, date and distance in a row is written by the server (`CityReportFormat`)
+and travels to the client in the page's `#reports-data` JSON, so the panel only lays it out.
+
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.
