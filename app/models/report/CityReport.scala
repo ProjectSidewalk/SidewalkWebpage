@@ -298,9 +298,12 @@ object CityReportFormat {
       if (ControllerUtils.isMetric) perKm else perKm / (1000 * CommonUtils.METERS_TO_MILES)
     }
 
-  /** @return A month and year, as the report dates an observation. */
+  /**
+   * @return A month and year, as the report dates an observation, in the language's own order and form ("Oct 2026",
+   *         "2026年10月"), which a fixed pattern would get wrong outside the languages it reads right in.
+   */
   def month(date: LocalDate)(using messages: Messages): String =
-    date.format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", messages.lang.toLocale))
+    date.format(java.time.format.DateTimeFormatter.ofLocalizedPattern("yMMM").withLocale(messages.lang.toLocale))
 
   /** @return The explored share, whole percent, as the score's floor compares it. */
   def explored(row: CityReportRow)(using messages: Messages): String =

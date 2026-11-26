@@ -386,4 +386,11 @@ class CityReportSpec extends AnyFunSuite with Matchers {
     CityReportFormat.density(quality)(using summon[RequestHeader], messagesIn("imperial")).get shouldBe
       (4.0 * 1.609344 +- 1e-4)
   }
+
+  test("dates a month in each language's own form, as the report does") {
+    val october = LocalDate.of(2026, 10, 4)
+    CityReportFormat.month(october)(using MessagesImpl(Lang("en"), DefaultMessagesApi())) shouldBe "Oct 2026"
+    // Not "10月 2026", which a fixed "MMM yyyy" gives.
+    CityReportFormat.month(october)(using MessagesImpl(Lang("zh-TW"), DefaultMessagesApi())) shouldBe "2026年10月"
+  }
 }
