@@ -1143,6 +1143,7 @@ report.city.legend.explored = Alles erkundet
 report.city.legend.problem.none = Nichts senkt den Wert
 report.city.legend.bar = Jeder Balken zeigt die gefundenen Probleme pro erkundeter Straße, nach Art, auf einer Skala für die ganze Stadt. Er ist nicht der Wert: Trottoirabsenkungen, Fussgängerstreifen und Fussgängersignale heben einen Wert und sind nicht eingezeichnet, ein längerer Balken bedeutet also keinen niedrigeren Wert. Auch die Steigung senkt manche Werte und ist nicht in den Balken enthalten.
 report.city.legend.floor = Die Markierung auf jedem Balken liegt bei {0} %: Ein Viertel erhält einen Wert, sobald so viel davon erkundet ist.
+report.city.sort.label = Sortieren nach
 report.city.table.title = Alle Viertel
 report.city.table.caption = Viertel in {0}
 report.city.col.name = Viertel

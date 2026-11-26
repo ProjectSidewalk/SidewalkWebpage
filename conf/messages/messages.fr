@@ -1158,6 +1158,7 @@ report.city.legend.explored = Tout exploré
 report.city.legend.problem.none = Rien ne fait baisser le score
 report.city.legend.bar = Chaque barre montre les problèmes trouvés par rue explorée, par type, sur une même échelle pour toute la ville. Ce n''est pas le score : les bateaux de trottoir, les passages piétons et les feux piétons font monter un score et ne sont pas dessinés, donc une barre plus longue ne veut pas dire un score plus bas. La pente fait aussi baisser certains scores et ne figure pas dans les barres.
 report.city.legend.floor = Le repère sur chaque barre d''exploration est à {0} % : un quartier reçoit un score dès que cette part en est explorée.
+report.city.sort.label = Trier par
 report.city.table.title = Tous les quartiers
 report.city.table.caption = Quartiers de {0}
 report.city.col.name = Quartier

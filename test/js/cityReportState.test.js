@@ -81,6 +81,13 @@ describe('CityReportState', () => {
     expect(heard).toHaveBeenLastCalledWith(state, { type: 'sort' });
   });
 
+  test('starts on the sort the server\'s order already is, so a first click on that column turns it around', () => {
+    const sorted = new CityReportState(ROWS, { selected: 1, sort: { column: 'score', dir: 'asc' } });
+    expect(sorted.sort).toEqual({ column: 'score', dir: 'asc' });
+    sorted.setSort('score');
+    expect(sorted.sort).toEqual({ column: 'score', dir: 'desc' });
+  });
+
   test('refuses a lens or filter it does not know, rather than drawing nothing', () => {
     expect(() => state.setLens('slope')).toThrow();
     expect(() => state.setFilter('some')).toThrow();

@@ -18,6 +18,10 @@ const ROWS = [
     imagery: null, labelers: 0, density: null },
 ];
 
+/** A region with no streets: the server sends no completion for it, though AccessScore would call it complete. */
+const STREETLESS = { id: 15, name: 'Harbor Island', scored: false, score: null, completion: null, reviewed: null,
+  latest: null, imagery: null, labelers: 0, density: null };
+
 const COLUMNS = ['name', 'score', 'why', 'explored', 'reviewed', 'latest', 'imagery', 'labelers', 'density', 'links'];
 const SORTABLE = new Set(['name', 'score', 'explored', 'reviewed', 'latest', 'imagery', 'labelers', 'density']);
 
@@ -96,6 +100,14 @@ describe('CityReportTable', () => {
     expect(shownIds()).toEqual([13, 14]);
   });
 
+  test('shows a hidden row again when it is selected, since the selection resets the filter', () => {
+    state.setFilter('scored');
+    expect(shownIds()).toEqual([11, 12]);
+    state.select(13, 'Map');
+    expect(state.filter).toBe('all');
+    expect(shownIds()).toEqual([11, 12, 13, 14]);
+  });
+
   test('selects from a row\'s name, and follows a selection made on the map', () => {
     const heard = vi.fn();
     state.subscribe(heard);
@@ -132,5 +144,29 @@ describe('CityReportTable', () => {
     expect(rowOf(11).querySelector('td[data-column="score"]').classList.contains('is-lens')).toBe(false);
     state.setLens('problem');
     expect(lit()).toEqual(['why']);
+  });
+});
+
+describe('CityReportTable starting on the server\'s Score sort', () => {
+  test('says so on the Score header, and a first click turns it around', async () => {
+    const { CityReportState, CityReportTable } = await loadModules(
+      'frontend/js/report/CityReportState.js', 'frontend/js/report/CityReportTable.js');
+    renderTable();
+    const state = new CityReportState(ROWS, { selected: 11, sort: { column: 'score', dir: 'asc' } });
+    new CityReportTable(document.getElementById('reports-table'), ROWS, state);
+    expect(shownIds()).toEqual([11, 12, 13, 14]);
+    expect(document.querySelector('th[data-column="score"]').getAttribute('aria-sort')).toBe('ascending');
+    sortButton('score').click();
+    expect(shownIds()).toEqual([12, 11, 13, 14]);
+    expect(document.querySelector('th[data-column="score"]').getAttribute('aria-sort')).toBe('descending');
+  });
+});
+
+describe('sortRows', () => {
+  test('puts a region with no streets last by Explored, either way, rather than first as "complete"', async () => {
+    const { sortRows } = await loadModules('frontend/js/report/CityReportTable.js');
+    const rows = [...ROWS, STREETLESS].map((r, index) => ({ ...r, index }));
+    expect(sortRows(rows, 'explored', 'desc').map((r) => r.id)).toEqual([12, 11, 13, 14, 15]);
+    expect(sortRows(rows, 'explored', 'asc').map((r) => r.id)).toEqual([14, 13, 11, 12, 15]);
   });
 });

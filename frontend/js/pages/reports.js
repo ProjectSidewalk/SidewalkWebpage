@@ -4,6 +4,7 @@
  * selection shared by the map, table and panel, and the log of what readers do.
  */
 
+import i18next from 'i18next';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
@@ -56,6 +57,32 @@ function paintLegends() {
 }
 
 /**
+ * Restates each server-printed UTC time in the reader's own time zone and language.
+ * @param {ParentNode} root - Where to look.
+ */
+function localizeTimes(root) {
+  for (const element of root.querySelectorAll('time[data-local-time]')) {
+    const time = /** @type {HTMLTimeElement} */ (element);
+    const date = new Date(time.dateTime);
+    if (!Number.isNaN(date.getTime())) time.textContent = date.toLocaleString(i18next.language, util.SHORT_DATE_TIME);
+  }
+}
+
+/**
+ * Keeps the table's scroller a tab stop only while it has something to scroll: on a phone the table becomes cards and
+ * a stop there would scroll nothing.
+ * @param {HTMLElement} scroller - The table's scroll container.
+ */
+function focusableWhileScrolling(scroller) {
+  const update = () => {
+    if (scroller.scrollWidth > scroller.clientWidth) scroller.setAttribute('tabindex', '0');
+    else scroller.removeAttribute('tabindex');
+  };
+  update();
+  new ResizeObserver(update).observe(scroller);
+}
+
+/**
  * Presses one button of a segmented control.
  * @param {NodeListOf<HTMLButtonElement>} buttons - The control's buttons.
  * @param {(button: HTMLButtonElement) => boolean} pressed - Which one is pressed.
@@ -72,8 +99,13 @@ window.appManager.ready(() => {
 
   paint(page);
   paintLegends();
+  localizeTimes(page);
+  const scroller = document.getElementById('reports-table-scroll');
+  if (scroller) focusableWhileScrolling(scroller);
 
-  const state = new CityReportState(data.rows, { selected: data.selected });
+  // Scored rows lowest first, unscored after: the server's order is the Score sort, ascending.
+  const sort = data.scoresReady ? { column: 'score', dir: /** @type {'asc'} */ ('asc') } : null;
+  const state = new CityReportState(data.rows, { selected: data.selected, sort });
   new CityReportTable(/** @type {HTMLTableElement} */ (document.getElementById('reports-table')), data.rows, state);
 
   const lensButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (page.querySelectorAll('button[data-lens]'));
@@ -88,17 +120,21 @@ window.appManager.ready(() => {
   document.getElementById('reports-controls').hidden = false;
 
   const panel = document.getElementById('reports-panel');
+  const panelStatus = document.getElementById('reports-panel-status');
   state.subscribe((current, change) => {
     switch (change.type) {
-      case 'select':
+      case 'select': {
         // A selection of a hidden row resets the filter, so the buttons follow it too.
         press(filterButtons, (b) => b.dataset.filter === current.filter);
+        const row = rowsById.get(current.selected);
         if (panel) {
-          renderPanel(panel, rowsById.get(current.selected), data);
+          renderPanel(panel, row, data);
           paint(panel);
         }
+        if (panelStatus) panelStatus.textContent = `${row.name}: ${row.text.why}`;
         log(`Select_Region=${current.selected}_From=${change.from}`);
         break;
+      }
       case 'lens':
         press(lensButtons, (b) => b.dataset.lens === current.lens);
         for (const element of page.querySelectorAll('.reports-legend')) {

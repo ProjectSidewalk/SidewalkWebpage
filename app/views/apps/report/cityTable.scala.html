@@ -14,8 +14,9 @@
 @unit = @{ControllerUtils.distanceUnitWords.abbr}
 @none = {<span aria-hidden="true">—</span><span class="sr-only">@Messages("report.city.value.none")</span>}
 @counting = {<span class="reports-muted">@Messages("report.city.computing.cell")</span>}
+@* The server's order is Score ascending (unscored rows after), so its header says so from the start. *@
 @sortable(column: String, label: String) = {
-  <th scope="col" data-column="@column"><button type="button" class="reports-table__sort" data-sort="@column">@label</button></th>
+  <th scope="col" data-column="@column"@if(column == "score" && report.scoresReady){ aria-sort="ascending"}><button type="button" class="reports-table__sort" data-sort="@column">@label</button></th>
 }
 @quality(row: CityReportRow)(value: models.report.RegionQuality => Option[String]) = {
   @row.quality.map { q =>
@@ -42,9 +43,9 @@
   <tbody>
     @for(row <- report.rows) {
       <tr data-region-id="@row.regionId"@if(report.selected.exists(_.regionId == row.regionId)){ class="is-selected"}>
+        @* Only the name: a row header is read again before every cell in its row. *@
         <th scope="row" data-column="name">
           <button type="button" class="reports-table__select" aria-pressed="@report.selected.exists(_.regionId == row.regionId)">@row.name</button>
-          <p class="reports-why">@CityReportFormat.why(row, report.scoresReady)</p>
         </th>
         <td data-column="score" data-label="@Messages("report.city.col.score")">
           @row.score.score.map { score =>
@@ -54,6 +55,7 @@
           }
         </td>
         <td data-column="why" data-label="@Messages("report.city.col.why")">
+          <p class="reports-why">@CityReportFormat.why(row, report.scoresReady)</p>
           @if(row.causes.nonEmpty) {
             <span class="reports-bar@if(row.provisional){ reports-bar--provisional}" aria-hidden="true">
               @for((labelType, share) <- report.barShares(row)) {<span class="reports-bar__seg" data-label-type="@labelType" data-share="@share"></span>}

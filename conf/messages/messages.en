@@ -1144,6 +1144,7 @@ report.city.legend.explored = All explored
 report.city.legend.problem.none = Nothing lowers the score
 report.city.legend.bar = Each bar shows the problems found per explored street, by type, on one scale for the whole city. It is not the score: curb ramps, crosswalks and signals raise a score and aren''t drawn, so a longer bar doesn''t mean a lower score. Slope also lowers some scores and isn''t in the bars.
 report.city.legend.floor = The mark on each explored bar is at {0}%: a neighborhood is scored once that much of it is explored.
+report.city.sort.label = Sort by
 report.city.table.title = Every neighborhood
 report.city.table.caption = Neighborhoods in {0}
 report.city.col.name = Neighborhood

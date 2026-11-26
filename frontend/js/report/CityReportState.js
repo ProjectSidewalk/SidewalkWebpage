@@ -40,11 +40,15 @@ export class CityReportState {
    * @param {object} [options] - Where to start.
    * @param {?number} [options.selected=null] - The neighborhood selected on arrival.
    * @param {CityReportLens} [options.lens='score'] - What the map is colored by on arrival.
+   * @param {?{column: string, dir: 'asc' | 'desc'}} [options.sort=null] - The sort the server's order already is, so
+   *   the header says so and a first click on it turns it around rather than repeating it; null when no column's
+   *   sort matches that order.
    */
-  constructor(rows, { selected = null, lens = 'score' } = {}) {
+  constructor(rows, { selected = null, lens = 'score', sort = null } = {}) {
     this.#scored = new Map(rows.map((r) => [r.id, r.scored]));
     this.#selected = selected;
     this.#lens = lens;
+    if (sort) this.#sort = { column: sort.column, dir: sort.dir };
   }
 
   /** @returns {?number} The selected neighborhood's id. */

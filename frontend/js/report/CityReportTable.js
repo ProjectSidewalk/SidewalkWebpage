@@ -11,7 +11,7 @@
  * @property {string} name
  * @property {boolean} scored
  * @property {?number} score - 0 to 1.
- * @property {number} completion - Explored share, 0 to 1.
+ * @property {?number} completion - Explored share, 0 to 1; null with no streets, so such a row sorts last.
  * @property {?number} reviewed - Percent of observations reviewed.
  * @property {?string} latest - The latest observation's date, ISO, so it sorts as text.
  * @property {?number} imagery - Median imagery year.

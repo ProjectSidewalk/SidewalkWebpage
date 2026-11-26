@@ -1139,6 +1139,7 @@ report.city.legend.explored = Alles bekeken
 report.city.legend.problem.none = Niets haalt de score omlaag
 report.city.legend.bar = Elke balk toont de gevonden problemen per bekeken straat, per type, op één schaal voor de hele stad. Het is niet de score: trottoiropritten, oversteekplaatsen en verkeerslichten verhogen een score en staan er niet in, dus een langere balk betekent geen lagere score. Helling verlaagt ook sommige scores en staat niet in de balken.
 report.city.legend.floor = De markering op elke balk staat op {0}%: een buurt krijgt een score zodra zoveel ervan bekeken is.
+report.city.sort.label = Sorteren op
 report.city.table.title = Alle buurten
 report.city.table.caption = Buurten in {0}
 report.city.col.name = Buurt

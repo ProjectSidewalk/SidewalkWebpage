@@ -388,9 +388,16 @@
   outline: 2px solid var(--color-link-200);
 }
 
+/* No minimum width of its own: the cells' content sets it, so the table fits the page on a desktop and scrolls sideways
+   only where it can't (a tablet). */
 .reports-table {
-  min-width: 1080px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Headers wrap: one long header ("Latest observation") would otherwise set its column wider than its values need. */
+.reports-table thead th {
+  white-space: normal;
+  vertical-align: bottom;
 }
 
 .reports-table th,
@@ -398,9 +405,9 @@
   padding: var(--space-xs) var(--space-sm);
 }
 
-/* A row's header is its name and sentence, so it reads as a cell, not as the column headers do. */
+/* A row's header is its name, so it reads as a cell, not as the column headers do. */
 .reports-table tbody th {
-  min-width: 200px;
+  min-width: 140px;
   font: var(--text-small-regular);
   white-space: normal;
   background: none;
@@ -408,7 +415,11 @@
 }
 
 .reports-table td[data-column="why"] {
-  min-width: 160px;
+  min-width: 200px;
+}
+
+.reports-table td[data-column="why"] .reports-why {
+  margin: 0 0 var(--space-xxs);
 }
 
 .reports-table th.is-lens {
@@ -473,25 +484,59 @@
   display: block;
 }
 
-/* var(--breakpoint-sm): each row becomes a short card, its cells labeled from their column, so nothing scrolls
-   sideways. */
-@media (width <= 768px) {
-  .reports-table {
-    min-width: 0;
-  }
+/* Only a phone shows it, above the sort buttons the header row becomes there. */
+.reports-sort-label {
+  display: none;
+}
 
-  .reports-table thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+/* var(--breakpoint-sm): each row becomes a short card, its cells labeled from their column, so nothing scrolls
+   sideways. The header row stays, as a wrapping row of sort buttons, so the table can still be sorted and a keyboard
+   sees where its focus is. */
+@media (width <= 768px) {
+  .reports-sort-label {
+    display: block;
+    margin: 0 0 var(--space-xxs);
+    font: var(--text-small-bold);
+    color: var(--color-neutral-800);
   }
 
   .reports-table,
+  .reports-table thead,
   .reports-table tbody {
     display: block;
+  }
+
+  .reports-table thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-neutral-300);
+  }
+
+  .reports-table thead th {
+    display: block;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  /* Nothing to sort by: the sentence and the links. */
+  .reports-table thead th[data-column="why"],
+  .reports-table thead th[data-column="links"] {
+    display: none;
+  }
+
+  /* 32px tall, past the 24px a pointer needs (WCAG 2.5.8). */
+  .reports-table__sort {
+    min-height: 32px;
+    padding: var(--space-xxs) var(--space-sm);
+    border: 1px solid var(--color-neutral-400);
+    border-radius: var(--border-radius);
+  }
+
+  .reports-table th[aria-sort] .reports-table__sort {
+    border-color: var(--color-asphalt-500);
   }
 
   .reports-table tbody tr {
@@ -525,7 +570,7 @@
   }
 
   .reports-table tbody th,
-  .reports-table td {
+  .reports-table tbody td {
     display: block;
     min-width: 0;
     padding: 0;

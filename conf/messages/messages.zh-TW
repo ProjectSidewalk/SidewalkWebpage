@@ -1217,6 +1217,7 @@ report.city.legend.explored = 全部探索
 report.city.legend.problem.none = 沒有拉低分數的項目
 report.city.legend.bar = 每條長條依類型顯示每條已探索街道上發現的問題，全市使用同一比例。長條不是分數：路緣斜坡、行人穿越道和行人號誌會提高分數，但不畫在長條中，所以長條較長不代表分數較低。坡度也會拉低部分分數，但不在長條中。
 report.city.legend.floor = 每條探索長條上的標記位於 {0}%：社區探索達此比例後才會評分。
+report.city.sort.label = 排序依據
 report.city.table.title = 所有社區
 report.city.table.caption = {0} 的社區
 report.city.col.name = 社區

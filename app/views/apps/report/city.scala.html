@@ -112,9 +112,12 @@
         </div>
       </div>
       @for(row <- report.selected) {
-        <section class="reports-panel" id="reports-panel" data-region-id="@row.regionId" aria-labelledby="reports-panel-name" aria-live="polite">
+        <section class="reports-panel" id="reports-panel" data-region-id="@row.regionId" aria-labelledby="reports-panel-name">
           @reportViews.cityPanel(report, row)
         </section>
+        @* What a selection announces: the name and its sentence, not every fact the panel redraws. Outside the panel,
+           whose contents are replaced on each selection, so it stays the same live region. *@
+        <p class="sr-only" id="reports-panel-status" role="status"></p>
       }
     </div>
 
@@ -124,8 +127,11 @@
         @Messages("report.city.legend.bar")
         @Messages("report.city.legend.floor", report.minCompletionPercent)
       </p>
-      @* Wider than a tablet, so it scrolls sideways there; focusable so a keyboard can scroll it too. *@
-      <div class="reports-table-scroll" tabindex="0" role="region" aria-labelledby="reports-table-title">
+      @* Shown on a phone, above the header row that becomes a row of sort buttons there. *@
+      <p class="reports-sort-label" aria-hidden="true">@Messages("report.city.sort.label")</p>
+      @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then;
+         reports.js drops it from the tab order wherever nothing overflows. No landmark of its own: the section is one. *@
+      <div class="reports-table-scroll" id="reports-table-scroll" tabindex="0">
         @reportViews.cityTable(report, cityName)
       </div>
     </section>

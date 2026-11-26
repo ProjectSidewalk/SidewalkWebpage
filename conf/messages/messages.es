@@ -1154,6 +1154,7 @@ report.city.legend.explored = Todo explorado
 report.city.legend.problem.none = Nada baja la puntuación
 report.city.legend.bar = Cada barra muestra los problemas encontrados por calle explorada, por tipo, en una misma escala para toda la ciudad. No es la puntuación: las rampas peatonales, los cruces peatonales y los semáforos peatonales suben una puntuación y no se dibujan, así que una barra más larga no significa una puntuación más baja. La pendiente también baja algunas puntuaciones y no aparece en las barras.
 report.city.legend.floor = La marca en cada barra de exploración está en el {0}%: un barrio recibe puntuación cuando se ha explorado esa parte.
+report.city.sort.label = Ordenar por
 report.city.table.title = Todos los barrios
 report.city.table.caption = Barrios de {0}
 report.city.col.name = Barrio

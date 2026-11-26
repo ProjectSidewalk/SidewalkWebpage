@@ -550,21 +550,25 @@ neighborhood report's own score (`NeighborhoodScore.from`, so the row and the re
 only past AccessScore's completion floor (`AccessScoreSpotlight.MinRegionCompletion`); what lowers it, as each scored
 label type's mean signed contribution (`ReportService.contributions`, the report's own), drawn as bars on one scale
 for the whole city; and how much to trust it: explored share, reviewed share, latest observation, median imagery year,
-labelers and observations per explored distance. Below the floor the bars are drawn as provisional, from the part
-explored so far; the legend says slope, which isn't a label type, lowers some scores without being in them.
+labelers and observations per explored distance. The bars show only the types that lower a score, per explored street,
+not the score itself: curb ramps, crosswalks and signals raise it and aren't drawn, and slope, which isn't a label type,
+lowers some scores without being in them, so the legend says a longer bar doesn't mean a lower score. The scale comes
+from the scored rows (`CityReport.barScale`); below the floor the bars are drawn as provisional, from the part explored
+so far, shrunk to fit when they pass it, so one barely explored neighborhood can't shrink every scored bar.
 
 `ReportService.cityReport` reads the same `getFullCityScores` cache as the reports. The quality columns come from one
 streamed pass over the city's raw labels (`ApiService.getRawLabels`), folded per region into `CoverageTally`, the
 same fold `Coverage.from` uses for a single report, and cached stale-while-revalidate (`ReportService.QualityCacheKey`,
-fresh an hour, kept twelve). Neither pass blocks the page for long: while scores or the tally are cold, it renders its
-rows without them and says what it is waiting for, rather than answering 503 as a report does. A failed tally leaves
-the quality columns "still counting" and logs a warning.
+fresh an hour, kept twelve). The tally carries the time its pass finished (`CityTallies.countedAt`) and the header
+states it, since it can be hours older than the page. Neither pass blocks the page for long: while scores or the tally
+are cold, it renders its rows without them and says what it is waiting for, rather than answering 503 as a report
+does. A failed tally leaves the quality columns "still counting"; `SwrCache` logs the failure once per attempt.
 
 The header, table and the first neighborhood's profile are server-rendered; `frontend/js/report/` adds the rest. One
 `CityReportState` holds the selection, hover, lens, filter and sort, and the map (`CityReportMap`, MapLibre over the
 city's PMTiles with the `/regions` polygons, so no billable Google or Mapbox call), the table (`CityReportTable`) and
 the profile panel each draw from it. The table is the keyboard and screen-reader path to the neighborhoods; on a phone
-its rows become labeled cards. Every sentence, date and distance in a row is written by the server (`CityReportFormat`)
+its rows become labeled cards, and its header row stays as a row of visible sort buttons. Every sentence, date and distance in a row is written by the server (`CityReportFormat`)
 and travels to the client in the page's `#reports-data` JSON, so the panel only lays it out.
 
 ### Public label-share surface (`/label/:id`)

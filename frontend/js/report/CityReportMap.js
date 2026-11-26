@@ -62,7 +62,7 @@ function mix(from, to, t) {
  * @property {boolean} scored
  * @property {boolean} hasStreets
  * @property {?number} score - 0 to 1.
- * @property {number} completion - 0 to 1.
+ * @property {?number} completion - 0 to 1; null with no streets.
  * @property {?string} topType - The type that lowers its score most.
  */
 
