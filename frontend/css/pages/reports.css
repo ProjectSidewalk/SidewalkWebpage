@@ -380,7 +380,11 @@
   color: var(--color-neutral-800);
 }
 
+/* Positioned so it is the containing block of anything absolutely placed in the table (the links column's sr-only
+   header): otherwise that sits at the table's full width against the page, outside this box's clipping, and widens the
+   whole page wherever the table is wider than it. */
 .reports-table-scroll {
+  position: relative;
   overflow-x: auto;
 }
 

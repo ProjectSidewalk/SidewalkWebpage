@@ -87,6 +87,23 @@ test.describe('/reports', () => {
     expect(link.x + link.width, 'the links column is cut off').toBeLessThanOrEqual(box.x + box.width);
   });
 
+  // Between the phone layout and a wide desktop (a tablet, or a desktop zoomed to 125-150%) the table may be wider than
+  // the page. Then it scrolls inside its own box and the page stays put, whatever in the table is absolutely placed.
+  test('scrolls only the table from 769px to 1199px', async ({page}) => {
+    await page.setViewportSize({width: 769, height: 900});
+    await openReports(page);
+    const scroller = page.locator('#reports-table-scroll');
+    for (const width of [769, 900, 1016, 1100]) {
+      await page.setViewportSize({width, height: 900});
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, `the page scrolls sideways at ${width}px`).toBeLessThanOrEqual(0);
+      const scrolls = await scroller.evaluate((s) => s.scrollWidth > s.clientWidth);
+      // A keyboard can scroll it exactly where it scrolls.
+      if (scrolls) await expect(scroller, `${width}px`).toHaveAttribute('tabindex', '0');
+      else await expect(scroller, `${width}px`).not.toHaveAttribute('tabindex');
+    }
+  });
+
   test('picking a neighborhood in the table shows it in the panel and marks its row', async ({page}) => {
     const activities = logged(page);
     const data = await openReports(page);
