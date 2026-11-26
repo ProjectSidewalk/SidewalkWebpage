@@ -127,8 +127,9 @@
         @Messages("report.city.legend.bar")
         @Messages("report.city.legend.floor", report.minCompletionPercent)
       </p>
-      @* Shown on a phone, above the header row that becomes a row of sort buttons there. *@
-      <p class="reports-sort-label" aria-hidden="true">@Messages("report.city.sort.label")</p>
+      @* Shown on a phone, above the header row that becomes a row of sort buttons there; like the controls above, only
+         once the script has wired those buttons. *@
+      <p class="reports-sort-label" id="reports-sort-label" aria-hidden="true" hidden>@Messages("report.city.sort.label")</p>
       @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then, and a
          named group so a screen reader says what took focus; reports.js drops all three wherever nothing overflows. A
          group, not a region: the section is already the landmark. *@

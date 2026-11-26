@@ -80,6 +80,8 @@ export class CityReportTable {
     this.#rows = rows.map((r, index) => ({ ...r, index }));
     for (const tr of table.tBodies[0].rows) this.#rowElements.set(Number(tr.dataset.regionId), tr);
     this.#bindEvents();
+    // The phone layout shows the header row as sort buttons only from here on, once they do something.
+    table.classList.add('is-sortable');
     state.subscribe((_, change) => this.#render(change.type));
     this.#render(null);
   }

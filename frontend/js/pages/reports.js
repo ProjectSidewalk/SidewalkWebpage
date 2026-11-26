@@ -127,6 +127,7 @@ window.appManager.ready(() => {
     button.addEventListener('click', () => state.setFilter(/** @type {any} */ (button.dataset.filter)));
   }
   document.getElementById('reports-controls').hidden = false;
+  document.getElementById('reports-sort-label').hidden = false;
 
   const panel = document.getElementById('reports-panel');
   const panelStatus = document.getElementById('reports-panel-status');

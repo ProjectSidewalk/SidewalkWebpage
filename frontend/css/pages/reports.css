@@ -525,6 +525,12 @@
     border: 0;
   }
 
+  /* Until the script has wired them (CityReportTable marks the table), the sort buttons would do nothing, and each
+     card already names its values, so the row of them stays out of sight and out of the tab order. */
+  .reports-table:not(.is-sortable) thead {
+    display: none;
+  }
+
   /* Nothing to sort by: the sentence and the links. */
   .reports-table thead th[data-column="why"],
   .reports-table thead th[data-column="links"] {

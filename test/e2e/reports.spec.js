@@ -221,3 +221,43 @@ test.describe('/reports on a phone', () => {
     await expect(explored).toHaveAttribute('aria-sort', 'ascending');
   });
 });
+
+test.describe('/reports without a script', () => {
+  test.use({javaScriptEnabled: false});
+
+  /**
+   * Loads the page with scripts off, so no `waitForAppReady`, and reads the data the server embedded.
+   * @param {import('@playwright/test').Page} page - The test's page.
+   * @returns {Promise<Record<string, any>>} The page's `#reports-data` JSON.
+   */
+  async function openWithoutScript(page) {
+    test.slow();
+    const response = await page.goto('/reports');
+    expect(response.status(), `/reports responded ${response.status()}`).toBe(200);
+    const data = JSON.parse(await page.locator('#reports-data').textContent());
+    test.skip(data.rows.length === 0, 'this database has no region to list');
+    return data;
+  }
+
+  test('the table still says it is in Score order, lowest first', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 900});
+    const data = await openWithoutScript(page);
+    const header = page.locator('#reports-table thead th[data-column="score"]');
+    if (data.scoresReady) await expect(header).toHaveAttribute('aria-sort', 'ascending');
+    else await expect(header).not.toHaveAttribute('aria-sort');
+    await expect(page.locator('#reports-controls')).toBeHidden();
+  });
+
+  test('a phone shows the cards, labeled, without a row of sort buttons that do nothing', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await openWithoutScript(page);
+    await expect(page.locator('.reports-sort-label')).toBeHidden();
+    for (const button of await page.locator('#reports-table button[data-sort]').all()) {
+      await expect(button).toBeHidden();
+    }
+    await expect(page.locator('#reports-table tbody tr').first()).toBeVisible();
+    const label = await page.locator('#reports-table tbody tr:first-child td[data-column="explored"]')
+      .evaluate((td) => getComputedStyle(td, '::before').content);
+    expect(label, 'a card cell names its column').not.toBe('none');
+  });
+});
