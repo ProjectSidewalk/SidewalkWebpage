@@ -152,6 +152,8 @@ skips finished steps. The script's flags go through `args=` (`make onboard-city 
   schema back untouched. It asks nothing and needs no app stopped: an app running as the city loses its database
   connections for a few seconds. `--dump-only` reruns only this step, which is how a city QA'd after its first
   dump gets a clean one without passing "drop and recreate?"; it refuses a schema that is still unfilled.
+  `--keep-user <username>` carries one person's local Explore work (a pre-launch expert audit) into the dump;
+  `docs/onboarding-a-city.md` step 9 lists what it keeps.
 
 Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, center/zoom) against the report.
 

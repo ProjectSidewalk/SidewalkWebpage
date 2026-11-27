@@ -715,6 +715,202 @@ def test_dump_schema_does_not_read_an_unreadable_schema_as_clean(monkeypatch, ca
     assert not any('pg_dump' in cmd for cmd in _joined(calls))
 
 
+# --keep-user (#6027): a pre-launch expert audit carried into the dump.
+_JON = ('jonfroehlich', '549187e0-82c9-4014-a48d-31f18083d575')
+
+# The foreign keys between the tables KEPT_FOR_USER copies, read from a city schema's pg_constraint (2026-11-27).
+# mission -> audit_task (current_audit_task_id) is left out: the two point at each other, and KEPT_FOR_USER_LINKS
+# sets that column once both are in.
+KEPT_FOR_USER_PARENTS = {
+    'route_slug_alias': {'route'}, 'route_street': {'route'}, 'user_route': {'route'}, 'mission': {'user_route'},
+    'audit_task': {'mission'}, 'audit_task_user_route': {'audit_task', 'route_street', 'user_route'},
+    'audit_task_environment': {'audit_task', 'mission'}, 'audit_task_interaction': {'audit_task', 'mission'},
+    'audit_task_interaction_small': {'audit_task', 'audit_task_interaction', 'mission'},
+    'audit_task_comment': {'audit_task', 'mission'}, 'pano_link': {'pano_data'}, 'pano_history': {'pano_data'},
+    'label': {'audit_task', 'mission', 'pano_data'}, 'label_point': {'label'}, 'label_edit': {'label'},
+    'label_history': {'label', 'label_edit'},
+}
+
+# Every table the Explore path writes that --keep-user does not carry, with why. The dump's own tables
+# (KEPT_IN_DUMP) need no entry: they ship whole.
+EXPLORE_WRITES_LEFT_OUT = {
+    'label_ai_info': "Written for SidewalkAI's own labels (submitAiLabelData), never for a person's.",
+    'cluster_label': "Explore only deletes from it; clusters are the nightly clustering job's.",
+    'region_completion': 'The app recomputes it from the streets when it is empty; the dump leaves it out.',
+    'user_survey_option_submission': 'A survey answer describes the person, not the streets.',
+    'user_survey_text_submission': 'A survey answer describes the person, not the streets.',
+}
+
+
+def test_kept_for_user_tables_are_ones_the_dump_leaves_out_and_go_in_foreign_key_order():
+    """
+    The copy holds none of a KEPT_FOR_USER table's rows before the step, so a table the dump already keeps would be
+    copied twice; and a child copied before its parent would be refused on its own foreign key.
+    """
+    tables = [table for table, _, _ in snc.KEPT_FOR_USER]
+    assert len(tables) == len(set(tables))
+    assert not set(tables) & snc.ONBOARDING_TABLES
+    for child, parents in KEPT_FOR_USER_PARENTS.items():
+        for parent in parents:
+            assert tables.index(parent) < tables.index(child), (parent, child)
+    for table, key, column in snc.KEPT_FOR_USER_LINKS:
+        assert column in dict((t, nulled) for t, _, nulled in snc.KEPT_FOR_USER)[table]
+        assert tables.index('audit_task') > tables.index(table)
+
+
+def test_kept_for_user_covers_every_table_an_explore_walk_writes():
+    """
+    What a walk in Explore writes, read from the services that write it: each table is carried, already kept whole,
+    or listed in EXPLORE_WRITES_LEFT_OUT with why. A service that starts writing a new table fails here and has to
+    choose. Tables written through a raw query rather than a `<name>Table.<verb>` call (label's insert) are not seen,
+    which is why the list was read by hand first.
+    """
+    services = Path(snc.REPO_ROOT) / 'app' / 'service'
+    write = re.compile(r'\b([a-z][A-Za-z]*)Table\.(?:(?:insert|upsert|save|update|delete|create|add|mark|pause|'
+                       r'discard|partially|soft)\w*|\w*OrCreate\w*)\b')
+    written = set()
+    for name in ('ExploreService', 'MissionService', 'LabelService', 'LabelEditService', 'RouteService'):
+        for variable in write.findall((services / f'{name}.scala').read_text()):
+            written.add(re.sub(r'(?<!^)([A-Z])', r'_\1', variable).lower())
+    written.add('audit_task_interaction_small')    # insertMultiple writes both interaction tables.
+    carried = {table for table, _, _ in snc.KEPT_FOR_USER}
+    assert written - carried - snc.KEPT_IN_DUMP == set(EXPLORE_WRITES_LEFT_OUT)
+    assert {'audit_task', 'mission', 'label_point', 'label_history', 'pano_data', 'route', 'user_route'} <= written
+
+
+def test_keep_user_sql_copies_from_the_local_schema_into_the_copy_in_one_transaction():
+    """
+    The rows come from the set-aside local schema, which is only read, and go into the copy in KEPT_FOR_USER's order;
+    mission's current task is set once the tasks are in; validations stay out, so the kept labels' counts are reset;
+    and every kept table's serial is moved past its kept ids before seed-city-rows.sql inserts its own (#6027).
+    """
+    sql = snc.keep_user_sql('sidewalk_rio_linda_ca', [_JON[1]])
+    lines = sql.split('\n')
+    assert lines[1] == 'BEGIN;' and lines[-1] == 'COMMIT;'
+    calls = [line for line in lines if line.startswith('  PERFORM pg_temp.keep_rows(')]
+    assert [re.match(r"  PERFORM pg_temp.keep_rows\('(\w+)'", call).group(1) for call in calls] == \
+        [table for table, _, _ in snc.KEPT_FOR_USER]
+    assert "keep_rows('label', $pred$user_id IN ('549187e0-82c9-4014-a48d-31f18083d575')$pred$, '{}')" in sql
+    assert ("keep_rows('mission', $pred$user_id IN ('549187e0-82c9-4014-a48d-31f18083d575') AND mission_type IN "
+            "('auditOnboarding', 'audit', 'exploreAddress')$pred$, '{current_audit_task_id}')") in sql
+    assert 'label_id IN (SELECT label_id FROM sidewalk_rio_linda_ca.label)' in sql
+    assert 'FROM sidewalk_rio_linda_ca_set_aside.label WHERE user_id IN' in sql
+    # Only the copy is written: every INSERT, UPDATE and setval names it, never the set-aside local schema.
+    assert "'INSERT INTO %I.%I (%s) SELECT %s FROM %I.%I WHERE %s', 'sidewalk_rio_linda_ca', tbl" in sql
+    assert not re.search(r'(?i)(insert into|update|delete from|truncate)\s+sidewalk_rio_linda_ca_set_aside', sql)
+    link = sql.index('UPDATE sidewalk_rio_linda_ca.mission SET current_audit_task_id')
+    assert link > sql.index("keep_rows('label_history'")
+    assert "attgenerated = ''" in sql
+    # A city's enums are its schema's own types, so the set-aside schema's go through text into the copy's.
+    assert "WHEN pg_type.typnamespace = 'sidewalk_rio_linda_ca_set_aside'::regnamespace" in sql
+    assert sql.index('agree_count = 0') > link and sql.index('setval') > sql.index('agree_count = 0')
+    assert "relname = ANY('{" + ','.join(table for table, _, _ in snc.KEPT_FOR_USER) + "}')" in sql
+    two = snc.keep_user_sql('sidewalk_x', [_JON[1], '51b0b927-3c8a-45b2-93de-bd878d1e5cf4'])
+    assert "user_id IN ('549187e0-82c9-4014-a48d-31f18083d575', '51b0b927-3c8a-45b2-93de-bd878d1e5cf4')" in two
+    with pytest.raises(ValueError, match='not a user id'):
+        snc.keep_user_sql('sidewalk_x', ["x'); DROP SCHEMA sidewalk_x; --"])
+
+
+def test_resolve_keep_users_wants_an_account_with_explore_work_here(monkeypatch):
+    """A flag that would carry nothing is a typo or the wrong city, so it stops the run before the dump."""
+    calls = _fake_run(monkeypatch, {"username = 'jonfroehlich'": (0, f'{_JON[1]}\n'),
+                                    "username = 'o''brien'": (0, ''), "username = 'nobody'": (0, ''),
+                                    "username = 'boom'": (1, ''),
+                                    f"audit_task WHERE user_id = '{_JON[1]}'": (0, '12\n')})
+    assert snc.resolve_keep_users('sidewalk_rio_linda_ca', ['jonfroehlich']) == [_JON]
+    assert snc.resolve_keep_users('sidewalk_rio_linda_ca', []) == []
+    with pytest.raises(SystemExit, match="o'brien: no such username"):
+        snc.resolve_keep_users('sidewalk_rio_linda_ca', ["o'brien"])
+    assert any("username = 'o''brien'" in cmd for cmd in _joined(calls))
+    with pytest.raises(SystemExit, match='could not look up --keep-user'):
+        snc.resolve_keep_users('sidewalk_rio_linda_ca', ['boom'])
+    _fake_run(monkeypatch, {'sidewalk_user': (0, f'{_JON[1]}\n'), 'audit_task': (0, '0\n')})
+    with pytest.raises(SystemExit, match='no audit_task in sidewalk_rio_linda_ca.*city they audited'):
+        snc.resolve_keep_users('sidewalk_rio_linda_ca', ['jonfroehlich'])
+    _fake_run(monkeypatch, {'sidewalk_user': (0, f'{_JON[1]}\n'), 'audit_task': (1, '')})
+    with pytest.raises(SystemExit, match='could not read sidewalk_rio_linda_ca.audit_task'):
+        snc.resolve_keep_users('sidewalk_rio_linda_ca', ['jonfroehlich'])
+
+
+def _kept_counts(validations=0):
+    return ''.join(f'{table}|{3 if table in ("audit_task", "label") else 0}\n' for table, _, _ in snc.KEPT_FOR_USER) + \
+        f'label_validation|{validations}\n'
+
+
+def test_dump_schema_carries_a_kept_users_rows_between_the_restore_and_the_seeds(monkeypatch, capsys):
+    """
+    The first pass is the same as without the flag; the user's rows go into the clean copy after its id is noted
+    (so a killed run can still drop it) and before the seed rows, whose serial ids then land past the kept ones; and
+    the printout names what was carried (#6027).
+    """
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'))
+    snc.dump_schema('sidewalk_bayonne')
+    default = _joined(calls)
+    capsys.readouterr()
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'), **{"'label_validation|'": (0, _kept_counts(validations=2))})
+    snc.dump_schema('sidewalk_bayonne', [_JON])
+    joined = _joined(calls)
+    first = next(cmd for cmd in joined if 'first-pass' in cmd and 'pg_dump' in cmd)
+    assert first == next(cmd for cmd in default if 'first-pass' in cmd and 'pg_dump' in cmd)
+
+    def step(needle):
+        return next(i for i, cmd in enumerate(joined) if needle in cmd)
+
+    restore, keep = step('pg_restore -U sidewalk -Fc -d sidewalk'), step('pg_temp.keep_rows')
+    counted, seed = step("'label_validation|'"), step('seed-city-rows.sql')
+    assert restore < keep < counted < seed
+    assert joined[keep].index('COMMENT ON SCHEMA sidewalk_bayonne_set_aside') < joined[keep].index('BEGIN;')
+    assert 'ON_ERROR_STOP=1' in joined[keep]
+    out = capsys.readouterr().out
+    assert "label: 5 (" not in out and "jonfroehlich's own rows are put back below): label: 5" in out
+    assert 'Kept for jonfroehlich (--keep-user): audit_task: 3, label: 3\n' in out
+    assert 'Left out: 2 validation(s) of those labels' in out
+    # Without the flag nothing of this runs or prints.
+    assert not any('keep_rows' in cmd or 'label_validation|' in cmd for cmd in default)
+    _dump_env(monkeypatch, (0, 'label|5\n'), **{"'label_validation|'": (0, _kept_counts())})
+    snc.dump_schema('sidewalk_bayonne', [_JON])
+    assert 'Left out: ' not in capsys.readouterr().out.replace('Left out of the dump', '')
+
+
+def test_dump_schema_refuses_a_kept_row_that_would_dangle_and_puts_the_local_schema_back(monkeypatch):
+    """
+    A kept row pointing at a row the dump leaves out (a mission of another user's, a validation's edit) stops the
+    step with Postgres's own naming of the constraint and key; nothing is seeded or dumped, and the local schema
+    gets its name back. A copy whose carried rows cannot be counted does not ship either.
+    """
+    refusal = ('ERROR:  insert or update on table "label" violates foreign key constraint "label_mission_id_fkey"\n'
+               'DETAIL:  Key (mission_id)=(10) is not present in table "mission".\n')
+    # The keep step names the set-aside schema in quotes too, so its needle goes first.
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'), **{'pg_temp.keep_rows': (3, '', refusal),
+                                                        "_set_aside'": [(0, ''), (0, '1\n')]})
+    with pytest.raises(SystemExit, match="(?s)carrying jonfroehlich's Explore work.*label_mission_id_fkey.*"
+                                         "Key \\(mission_id\\)=\\(10\\).*without --keep-user"):
+        snc.dump_schema('sidewalk_bayonne', [_JON])
+    joined = _joined(calls)
+    assert not any('seed-city-rows.sql' in cmd for cmd in joined)
+    assert not any(cmd.endswith('-f /opt/sidewalk_bayonne-dump') for cmd in joined)
+    assert any('RENAME TO sidewalk_bayonne;' in cmd for cmd in joined)
+    calls = _dump_env(monkeypatch, (0, 'label|5\n'), **{"_set_aside'": [(0, ''), (0, '1\n')],
+                                                        "'label_validation|'": (1, '')})
+    with pytest.raises(SystemExit, match='could not count the rows carried for jonfroehlich'):
+        snc.dump_schema('sidewalk_bayonne', [_JON])
+    assert any('RENAME TO sidewalk_bayonne;' in cmd for cmd in _joined(calls))
+
+
+def test_main_passes_keep_user_to_the_dump(repo_copy, monkeypatch, capsys):
+    """--keep-user is resolved and handed to step 9 on a --dump-only run and on a full one, and is repeatable."""
+    _city_artifacts(repo_copy)
+    seen = []
+    monkeypatch.setattr(snc, 'resolve_keep_users', lambda schema, names: seen.append((schema, names)) or [_JON])
+    monkeypatch.setattr(snc, 'dump_schema', lambda schema, keep_users=(): seen.append(list(keep_users)) or 1)
+    _fake_run(monkeypatch, _dump_only_db())
+    snc.main(['testville-wa', '--dump-only', '--keep-user', 'jonfroehlich', '--keep-user', 'mikey'])
+    assert seen == [('sidewalk_testville_wa', ['jonfroehlich', 'mikey']), [_JON]]
+    seen.clear()
+    snc.main(['testville-wa', '--dump-only'])
+    assert seen == [('sidewalk_testville_wa', []), [_JON]]
+
+
 def test_handoff_renames_the_dump_to_the_servers_convention():
     """
     The local name is what import-dump.sh restores; the server's own files are all `-empty-dump`. The destination
@@ -1250,7 +1446,8 @@ def _stub_steps(monkeypatch, repo_copy):
     monkeypatch.setattr(snc, 'run_street_gradient',
                         lambda schema, city_id, sampler_args=():
                         record.update(gradient=schema, sampler_args=list(sampler_args)) or 'sampled')
-    monkeypatch.setattr(snc, 'dump_schema', lambda schema: record.__setitem__('dump', schema))
+    monkeypatch.setattr(snc, 'dump_schema',
+                        lambda schema, keep_users=(): record.update(dump=schema, keep_users=list(keep_users)))
     monkeypatch.setattr(snc, 'highest_evolution', lambda: 375)
     monkeypatch.setattr(snc, 'highest_evolution_hash', lambda: 'hash375')
     monkeypatch.setattr(ga, 'CITYPARAMS', snc.CITYPARAMS)
