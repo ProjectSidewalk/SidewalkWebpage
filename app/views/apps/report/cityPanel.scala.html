@@ -30,7 +30,6 @@
   <h2 class="reports-panel__name" id="reports-panel-name">@row.name</h2>
 </div>
 <p class="reports-panel__why">@CityReportFormat.why(row, report.scoresReady)</p>
-@if(row.provisional) {<p class="reports-provisional">@Messages("report.city.provisional")</p>}
 @if(row.causes.nonEmpty) {
   <ul class="reports-panel__causes">
     @for((labelType, share) <- report.barShares(row)) {

@@ -322,12 +322,6 @@
   outline-offset: 1px;
 }
 
-.reports-provisional {
-  margin: var(--space-xxs) 0 0;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-800);
-}
-
 .reports-explored {
   position: relative;
   display: inline-block;

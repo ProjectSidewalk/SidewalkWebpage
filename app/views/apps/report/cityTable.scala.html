@@ -61,7 +61,6 @@
               @for((labelType, share) <- report.barShares(row)) {<span class="reports-bar__seg" data-label-type="@labelType" data-share="@share"></span>}
             </span>
           }
-          @if(row.provisional) {<p class="reports-provisional">@Messages("report.city.provisional")</p>}
         </td>
         <td data-column="explored" data-label="@Messages("report.city.col.explored")">
           @if(row.hasStreets) {

@@ -106,7 +106,6 @@ export function linksOf(row) {
 export function renderPanel(panel, row, page) {
   const { text } = row;
   const explored = text.toGo ? `${text.explored} · ${text.toGo}` : text.explored;
-  const provisional = row.provisional ? '<p class="reports-provisional" data-i18n="report:city.provisional"></p>' : '';
   const facts = [
     row.hasStreets ? fact('explored', explored, true) : '',
     fact('reviewed', text.reviewed, page.qualityReady),
@@ -123,7 +122,6 @@ export function renderPanel(panel, row, page) {
       <h2 class="reports-panel__name" id="reports-panel-name">${util.escapeHTML(row.name)}</h2>
     </div>
     <p class="reports-panel__why">${util.escapeHTML(text.why)}</p>
-    ${provisional}
     ${causesOf(row, page.typeNames)}
     <dl class="reports-panel__facts">${facts.join('')}</dl>
     <p class="reports-panel__links">${linksOf(row)}</p>`;

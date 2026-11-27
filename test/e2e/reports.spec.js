@@ -161,6 +161,12 @@ test.describe('/reports', () => {
     const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
     const box = await canvas.boundingBox();
     const tooltip = page.locator('.reports-map-tooltip .reports-map-card');
+    /** @param {{fx: number, fy: number}} at - A point as fractions of the canvas, which page scrolling can't stale. */
+    const pointOn = async ({fx, fy}) => {
+      await canvas.scrollIntoViewIfNeeded();
+      const b = await canvas.boundingBox();
+      return {x: b.x + b.width * fx, y: b.y + b.height * fy};
+    };
 
     // Which shape sits where depends on the city, so sweep a grid until the pointer lands on one; the sweep also waits
     // out the map's load, before which nothing answers a hover.
@@ -168,10 +174,9 @@ test.describe('/reports', () => {
     await expect.poll(async () => {
       for (const fx of [0.5, 0.35, 0.65, 0.2, 0.8]) {
         for (const fy of [0.5, 0.35, 0.65, 0.2, 0.8]) {
-          const at = {x: box.x + box.width * fx, y: box.y + box.height * fy};
-          await page.mouse.move(at.x, at.y);
+          await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
           if (await tooltip.isVisible()) {
-            point = at;
+            point = {fx, fy};
             return true;
           }
         }
@@ -184,7 +189,8 @@ test.describe('/reports', () => {
     await expect(tooltip.locator('.reports-map-card__name')).toHaveText(row.name);
     await expect(tooltip.locator('a')).toHaveCount(0);
 
-    await page.mouse.click(point.x, point.y);
+    let at = await pointOn(point);
+    await page.mouse.click(at.x, at.y);
     const pinned = page.locator('.reports-map-popup .reports-map-card');
     await expect(pinned).toHaveAttribute('data-region-id', String(id));
     await expect(tooltip).toHaveCount(0);
@@ -195,7 +201,8 @@ test.describe('/reports', () => {
     if (other) {
       await page.locator(`#reports-table tr[data-region-id="${other.id}"] td[data-column="score"]`).click();
       await expect(pinned).toHaveCount(0);
-      await page.mouse.click(point.x, point.y);
+      at = await pointOn(point);
+      await page.mouse.click(at.x, at.y);
     }
 
     await pinned.locator('a[data-city-event="OpenReport"]').click();
