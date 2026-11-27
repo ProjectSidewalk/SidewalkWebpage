@@ -24,6 +24,24 @@ the same day re-reads what it fetched, a later one sees what OSM holds then.
 The whole new-city sequence is [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md); `setup_new_city.py`,
 `create_ga_properties.py` and `maps_key_referrers.py` are documented in their headers.
 
+## `setup_new_city.py --keep-user`: a pre-launch expert audit in the launch dump
+
+The launch dump normally carries no one's Explore work: a local QA walk must not ride into the launched city. When
+someone audits streets on their local server **before launch** on purpose (blind ground truth for a study, #6027)
+and those labels should be part of the city, dump with their username:
+
+```bash
+make onboard-city id=rio-linda-ca args="--dump-only --keep-user jonfroehlich"
+```
+
+It carries that user's audits, Explore missions, labels (with their points, history and own edits, and the panos
+they sit on), the routes they built or walked, and their `user_stat` and `user_current_region` rows; the full list
+and the reasons are `KEPT_FOR_USER` in the script and step 9 of
+[`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md). Everyone else's rows stay out exactly as without the
+flag, and so do the user's validations. A kept row that points at something left out stops the dump, naming the
+row. The local schema is only read. Use the same account you will use on the server: `sidewalk_login` is shared,
+so its user id is already the server's.
+
 ## `check_streets_for_imagery.py`
 
 Finds streets lacking street-view imagery (Google Street View, Mapillary, Panoramax, or Infra3d) and writes them to a

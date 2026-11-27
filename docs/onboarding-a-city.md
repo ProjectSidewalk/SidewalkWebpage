@@ -222,6 +222,19 @@ its default either way.
      city loses its connections for those seconds and reconnects by itself. Nothing needs stopping.
    - **A killed run** leaves the local schema set aside, and the next run puts it back first. If something other
      than that run's copy now has the city's name (a dump imported since), it stops and says what to do by hand.
+   - **A pre-launch expert audit** (`--keep-user <username>`, repeatable, #6027). For ground truth audited on your
+     local server before launch, which should be part of the launched city. Between the restore and the seed rows,
+     the step copies that user's Explore work from the set-aside local schema into the clean copy: `user_stat`,
+     `user_current_region`, the routes they built or walked (`route`, `route_slug_alias`, `route_street`,
+     `user_route`, `audit_task_user_route`), their Explore missions, `audit_task` with its environment, interactions
+     and comments, `street_edge_issue`, their labels (`label`, `label_point`, `label_history`, their own
+     `label_edit`s) and the `pano_data`/`pano_link`/`pano_history` rows of the panos they labeled. Everyone else's
+     rows stay out as before, and so do the user's validations and Validate missions; validations of the kept labels
+     stay out too, so those labels' agree/disagree counts are reset. A kept row that points at a row left out (a
+     label in another user's mission) stops the step, naming the constraint and key. Each kept table's serial is set
+     past its kept ids, so the seed rows and the server's inserts never collide with them. `sidewalk_login` is
+     shared, so the user's id is the server's already. The kept user's streets still go back to priority 1 with the
+     rest; the first nightly priority recalculation counts their audits again. The step prints the rows it carried.
 
    Then the handoff checklist. `--dump-only` runs this step alone, and refuses a schema that is still unfilled.
 
@@ -266,7 +279,8 @@ its default either way.
   `<schema>-dump`, which is what `make import-dump` restores and what a populated prod pull is called too. (An ssh
   alias that sets the user works as well; a bare hostname without one fails with `Permission denied`.) **If you
   QA'd the city locally, dump it again first**: `make onboard-city id=<city-id> args="--dump-only"` reruns only the
-  dump step. The QA data stays in your local schema and out of the dump. Then the IT tooling
+  dump step. The QA data stays in your local schema and out of the dump; add `--keep-user <username>` to carry
+  an expert's pre-launch audit into it (step 9). Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
   skipped them (`python3 tools/city/maps_key_referrers.py <city-id>`), and the PR with the config, message, and docs
   changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod

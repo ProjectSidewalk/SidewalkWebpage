@@ -41,7 +41,8 @@ It chains every remaining setup step, pausing only where a human is required:
      downloaded, a rerun with --dem-dir, --dem-name and --dem-resolution-m (the sampler's own flags) samples it.
   9. Dumps the finished schema to db/<schema>-dump — the file import-dump.sh and the server both restore — with the
      data of every table onboarding does not write left out, so a local QA pass or a job run never rides into the
-     launched city; then prints the server handoff checklist.
+     launched city; then prints the server handoff checklist. `--keep-user <username>` carries one person's Explore
+     work into it as well, for an expert audit done locally before launch (#6027).
 
 A rerun skips whatever already happened: registered configs, an existing schema (answer "n", or pass --recreate to
 drop it without being asked), applied evolutions, a filled schema (jumping straight to the imagery scan), a scan
@@ -1057,6 +1058,58 @@ ONBOARDING_TABLES = frozenset((
 ))
 KEPT_IN_DUMP = ONBOARDING_TABLES - {'region_completion'}
 
+# The Explore mission types: the ones a walk in Explore creates. A kept user's Validate missions stay out with the
+# validations they would count.
+EXPLORE_MISSION_TYPES = ('auditOnboarding', 'audit', 'exploreAddress')
+
+# --keep-user (#6027): a pre-launch expert audit, carried into the dump. Each entry is (table, which rows, columns to
+# insert as NULL for now), in the order the foreign keys need. The rows are copied from the set-aside local schema
+# ({aside}) into the clean copy ({schema}), so a child's predicate can name the copy's table to mean "the parent rows
+# kept". Every table here is one the first pass leaves out, so before this step the copy holds none of their rows.
+# The list is what an Explore walk writes, read from ExploreService and the services it calls;
+# test_setup_new_city.py pins it against them, with the reason for each table an Explore walk writes that is not here.
+KEPT_FOR_USER = (
+    # The nightly street priority recalculation counts an audit only through its user's user_stat row, and a label
+    # whose user has none is hidden from the map and the API (#5349); the app would make the row on the user's first
+    # visit, but the labels must count from launch.
+    ('user_stat', 'user_id IN ({users})', ()),
+    # The region Explore resumes the user in, so it agrees with the open mission kept below.
+    ('user_current_region', 'user_id IN ({users})', ()),
+    # A route the user built or walked, whoever built it, and everything the walk points at.
+    ('route', 'user_id IN ({users}) '
+              'OR route_id IN (SELECT route_id FROM {aside}.user_route WHERE user_id IN ({users}))', ()),
+    ('route_slug_alias', 'route_id IN (SELECT route_id FROM {schema}.route)', ()),
+    ('route_street', 'route_id IN (SELECT route_id FROM {schema}.route)', ()),
+    ('user_route', 'user_id IN ({users})', ()),
+    # mission and audit_task point at each other, so a mission goes in without its current task, which is put back
+    # once the tasks are in (KEPT_FOR_USER_LINKS).
+    ('mission', 'user_id IN ({users}) AND mission_type IN (' + ', '.join(f"'{mission_type}'" for mission_type in
+                                                                            EXPLORE_MISSION_TYPES) + ')',
+     ('current_audit_task_id',)),
+    ('audit_task', 'user_id IN ({users})', ()),
+    ('audit_task_user_route', 'user_route_id IN (SELECT user_route_id FROM {schema}.user_route)', ()),
+    ('audit_task_environment', 'audit_task_id IN (SELECT audit_task_id FROM {schema}.audit_task)', ()),
+    ('audit_task_interaction', 'audit_task_id IN (SELECT audit_task_id FROM {schema}.audit_task)', ()),
+    ('audit_task_interaction_small', 'audit_task_id IN (SELECT audit_task_id FROM {schema}.audit_task)', ()),
+    ('audit_task_comment', 'user_id IN ({users})', ()),
+    ('street_edge_issue', 'user_id IN ({users})', ()),
+    # A label cannot be committed without its pano's row (label_pano_id_fkey, #4587). Panos merely viewed stay out:
+    # the server fetches their metadata again.
+    ('pano_data', 'pano_id IN (SELECT pano_id FROM {aside}.label WHERE user_id IN ({users}))', ()),
+    ('pano_link', 'pano_id IN (SELECT pano_id FROM {schema}.pano_data)', ()),
+    ('pano_history', 'location_curr_pano_id IN (SELECT pano_id FROM {schema}.pano_data)', ()),
+    ('label', 'user_id IN ({users})', ()),
+    ('label_point', 'label_id IN (SELECT label_id FROM {schema}.label)', ()),
+    # Only the user's own edits: an edit made from a validation names a label_validation, which stays out.
+    ('label_edit', 'user_id IN ({users}) AND label_id IN (SELECT label_id FROM {schema}.label)', ()),
+    # Every history row of a kept label. One that records someone else's edit names a label_edit left out above, so
+    # the copy refuses it on its foreign key rather than shipping a label whose history skips a step.
+    ('label_history', 'label_id IN (SELECT label_id FROM {schema}.label)', ()),
+)
+# The columns KEPT_FOR_USER inserts as NULL, as (table, key column, column): set from the local schema once every
+# table is in, so the foreign key is checked against the kept rows.
+KEPT_FOR_USER_LINKS = (('mission', 'mission_id', 'current_audit_task_id'),)
+
 
 def quote_ident(name):
     """A Postgres identifier, quoted: a scratch table with a capital letter or a space is a table too (#5297)."""
@@ -1122,6 +1175,138 @@ def dump_exclusions(schema):
     return patterns, counts
 
 
+def keep_user_sql(schema, user_ids):
+    """
+    The SQL that copies the kept users' Explore work (KEPT_FOR_USER) from the set-aside local schema into the clean
+    copy, run on the copy before seed-city-rows.sql. One transaction, so a refusal leaves the copy as the first pass
+    made it.
+
+    Each INSERT names its columns, leaving out generated ones (label_point.street_side), which the copy computes
+    again. Foreign keys are checked statement by statement, so a kept row that points at a row the dump leaves out
+    (another user's mission, a validation's label_edit) stops the step with Postgres naming the constraint and the
+    key. A kept label's validations stay out, so its agree/disagree/unsure counts and ``correct`` are reset to match.
+    Last, every serial of a kept table is set to its highest kept id, so the server's next insert, and the seed rows
+    put in right after, take the ids above it.
+
+    Args:
+        schema:   The city schema, the clean copy's name.
+        user_ids: The kept users' ``sidewalk_login`` user ids (UUIDs, checked here since they are spliced into SQL).
+
+    Returns:
+        The script, for ``psql -c``.
+    """
+    for user_id in user_ids:
+        if not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', user_id):
+            raise ValueError(f'not a user id: {user_id!r}')
+    aside = set_aside_name(schema)
+    users = ', '.join(f"'{user_id}'" for user_id in user_ids)
+    tables = [table for table, _, _ in KEPT_FOR_USER]
+    lines = [
+        'SET client_min_messages = warning;',
+        'BEGIN;',
+        # Copies one table's rows; `nulled` names the columns that go in as NULL for now. A city's enums are its own
+        # schema's types, so the set-aside schema's mission_type is not the copy's: a column of one of its types
+        # goes through text into the copy's type. pg_attribute is read for both tables, hence its two aliases.
+        'CREATE FUNCTION pg_temp.keep_rows(tbl text, pred text, nulled text[]) RETURNS void LANGUAGE plpgsql AS $fn$',
+        'DECLARE cols text; picks text;',
+        'BEGIN',
+        "  SELECT string_agg(quote_ident(source.attname), ', ' ORDER BY source.attnum),",
+        "         string_agg(CASE WHEN source.attname = ANY(nulled) THEN 'NULL'",
+        f"                         WHEN pg_type.typnamespace = '{aside}'::regnamespace",
+        "                         THEN format('%I::text::%s', source.attname, format_type(target.atttypid,",
+        '                                                                               target.atttypmod))',
+        "                         ELSE quote_ident(source.attname) END, ', ' ORDER BY source.attnum)",
+        '    INTO cols, picks',
+        '    FROM pg_attribute source JOIN pg_type ON pg_type.oid = source.atttypid',
+        f"    JOIN pg_attribute target ON target.attrelid = format('%I.%I', '{schema}', tbl)::regclass",
+        '      AND target.attname = source.attname',
+        f"    WHERE source.attrelid = format('%I.%I', '{aside}', tbl)::regclass",
+        "      AND source.attnum > 0 AND NOT source.attisdropped AND source.attgenerated = '';",
+        f"  EXECUTE format('INSERT INTO %I.%I (%s) SELECT %s FROM %I.%I WHERE %s', '{schema}', tbl, cols, picks,",
+        f"                 '{aside}', tbl, pred);",
+        'END $fn$;',
+        'DO $$ BEGIN',
+    ]
+    for table, predicate, nulled in KEPT_FOR_USER:
+        pred = predicate.format(users=users, aside=aside, schema=schema)
+        array = "'{" + ','.join(nulled) + "}'"
+        lines.append(f"  PERFORM pg_temp.keep_rows('{table}', $pred${pred}$pred$, {array});")
+    lines.append('END $$;')
+    for table, key, column in KEPT_FOR_USER_LINKS:
+        lines.append(f'UPDATE {schema}.{table} SET {column} = (SELECT {column} FROM {aside}.{table} '
+                     f'WHERE {aside}.{table}.{key} = {schema}.{table}.{key});')
+    lines += [
+        f'UPDATE {schema}.label SET agree_count = 0, disagree_count = 0, unsure_count = 0, correct = NULL',
+        '    WHERE agree_count <> 0 OR disagree_count <> 0 OR unsure_count <> 0 OR correct IS NOT NULL;',
+        # A serial's sequence is the one its column DEFAULT names: SERIAL and the schema's older hand-made ones alike.
+        'DO $$ DECLARE serial record; top bigint; BEGIN',
+        '  FOR serial IN SELECT pg_class.relname AS tbl, pg_attribute.attname AS col,',
+        "      substring(pg_get_expr(pg_attrdef.adbin, pg_attrdef.adrelid) FROM 'nextval\\(''([^'']+)''') AS seq",
+        '    FROM pg_attrdef JOIN pg_class ON pg_class.oid = pg_attrdef.adrelid',
+        '    JOIN pg_attribute ON pg_attribute.attrelid = pg_attrdef.adrelid',
+        '      AND pg_attribute.attnum = pg_attrdef.adnum',
+        f"    WHERE pg_class.relnamespace = '{schema}'::regnamespace",
+        "      AND pg_class.relname = ANY('{" + ','.join(tables) + "}')",
+        "      AND pg_get_expr(pg_attrdef.adbin, pg_attrdef.adrelid) LIKE 'nextval(%'",
+        '  LOOP',
+        f"    EXECUTE format('SELECT max(%I) FROM %I.%I', serial.col, '{schema}', serial.tbl) INTO top;",
+        '    IF top IS NOT NULL THEN PERFORM setval(serial.seq::regclass, top); END IF;',
+        '  END LOOP;',
+        'END $$;',
+        'COMMIT;',
+    ]
+    return '\n'.join(lines)
+
+
+def resolve_keep_users(schema, usernames):
+    """
+    The user ids behind --keep-user, each checked to have Explore work in the local schema to carry.
+
+    ``sidewalk_login`` is shared by every city and is not in the dump, and a local account's user_id is the one the
+    server holds for the same person, so the kept rows' user_id columns are shipped as they are.
+
+    Returns:
+        ``[(username, user_id), ...]``; the run stops on a username with no account or no audit_task here, since a
+        flag that would carry nothing is a typo or the wrong city.
+    """
+    kept = []
+    for username in usernames:
+        literal = username.replace("'", "''")
+        user_id = db_query(f"SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = '{literal}'")
+        if user_id is None:
+            sys.exit('error: could not look up --keep-user in sidewalk_login; is the db container up?')
+        if not user_id:
+            sys.exit(f'error: --keep-user {username}: no such username in sidewalk_login (it is case-sensitive).')
+        tasks = db_query(f"SELECT count(*) FROM {schema}.audit_task WHERE user_id = '{user_id}'")
+        if tasks in (None, '0'):
+            sys.exit(f'error: --keep-user {username}: ' + (f'could not read {schema}.audit_task.' if tasks is None else
+                     f'no audit_task in {schema}, so there is nothing to carry. Is this the city they audited?'))
+        kept.append((username, user_id))
+    return kept
+
+
+def kept_row_counts(schema, tables):
+    """
+    The rows the copy holds in each table, read before the seed rows go in: exactly what --keep-user carried. And
+    how many validations of the kept labels the local schema holds, which stay out (their counts were reset).
+
+    Returns:
+        ``([(table, rows), ...], left_out_validations)``, or None when the copy could not be read.
+    """
+    counted = db_query(' UNION ALL '.join([f"SELECT '{table}|' || count(*) FROM {schema}.{quote_ident(table)}"
+                                           for table in tables] +
+                                          [f"SELECT 'label_validation|' || count(*) FROM "
+                                           f"{set_aside_name(schema)}.label_validation WHERE label_id IN "
+                                           f"(SELECT label_id FROM {schema}.label)"]))
+    if counted is None:
+        return None
+    counts = []
+    for line in counted.split('\n'):
+        table, _, n_rows = line.strip().rpartition('|')
+        counts.append((table, int(n_rows)))
+    return counts[:-1], counts[-1][1]
+
+
 # Written on the set-aside schema with the clean copy's id, so a later run can tell that copy from a stranger.
 COPY_NOTE = 'onboarding dump copy '
 
@@ -1165,7 +1350,7 @@ def put_local_schema_back(schema, copy_is_ours=False):
               f'ALTER ROLE {schema} LOGIN; END IF; END $$', check=True)
 
 
-def dump_schema(schema):
+def dump_schema(schema, keep_users=()):
     """
     Dumps the finished schema to db/<schema>-dump in the format import-dump.sh and the server restore (-Fc), as a
     launched city should start: the tables onboarding wrote (ONBOARDING_TABLES), the seed rows every city needs
@@ -1175,6 +1360,13 @@ def dump_schema(schema):
     first dump leaves out every table onboarding did not write. The local schema is renamed aside, that dump is
     restored under the real name as a clean copy, and the copy is seeded and dumped whole. Then the copy is dropped
     and the local schema renamed back, untouched (#6036).
+
+    With ``keep_users``, the copy also gets those users' Explore work (KEPT_FOR_USER), copied from the set-aside local
+    schema before the seed rows, so the seeds' ids come after the kept ones (#6027). The first pass is the same
+    either way, and nothing is written to the local schema.
+
+    Args:
+        keep_users: ``[(username, user_id), ...]`` from resolve_keep_users, or empty for a dump of onboarding alone.
 
     Returns:
         The number of objects the dump lists (a sanity check that it isn't empty).
@@ -1187,8 +1379,10 @@ def dump_schema(schema):
                  '--dump-only.')
     patterns, counts = exclusions
     if counts:
+        kept_note = f'; {", ".join(name for name, _ in keep_users)}\'s own rows are put back below' \
+            if keep_users else ''
         print('  Left out of the dump (rows a QA pass or a job wrote, and the seed rows put back below; your local '
-              'schema keeps them all): ' + ', '.join(f'{table}: {n_rows}' for table, n_rows in counts))
+              f'schema keeps them all{kept_note}): ' + ', '.join(f'{table}: {n_rows}' for table, n_rows in counts))
 
     dump_path = f'/opt/{schema}-dump'
     first_pass = f'{dump_path}.first-pass'
@@ -1207,11 +1401,31 @@ def dump_schema(schema):
         run_or_exit(['pg_restore', '-U', 'sidewalk', '-Fc', '-d', 'sidewalk', first_pass],
                     f'restoring the first-pass dump as the clean copy of {schema} failed',
                     'Your local schema was put back as it was: fix the cause and rerun with --dump-only.')
+        # Notes the copy's id on the set-aside schema, so a later run knows the copy is its own to drop if this one
+        # is killed. The seed step below writes it too.
+        note_copy = ['-c', f"DO $$ BEGIN EXECUTE format('COMMENT ON SCHEMA {set_aside_name(schema)} IS %L', "
+                           f"'{COPY_NOTE}' || '{schema}'::regnamespace::oid); END $$"]
+        if keep_users:
+            names = ', '.join(name for name, _ in keep_users)
+            run_or_exit([*psql, *note_copy, '-c', keep_user_sql(schema, [user_id for _, user_id in keep_users])],
+                        f'carrying {names}\'s Explore work into the clean copy of {schema} failed',
+                        'A kept row points at a row the dump leaves out (Postgres names the constraint and the key '
+                        'above), or the copy could not take it. Your local schema was put back as it was: fix that '
+                        'row there, or dump without --keep-user.')
+            carried = kept_row_counts(schema, [table for table, _, _ in KEPT_FOR_USER])
+            if carried is None:
+                sys.exit(f'error: could not count the rows carried for {names}, so the dump would ship unchecked; '
+                         'your local schema was put back as it was. Rerun with --dump-only.')
+            kept_counts, validations = carried
+            print(f'  Kept for {names} (--keep-user): ' +
+                  ', '.join(f'{table}: {n_rows}' for table, n_rows in kept_counts if n_rows))
+            if validations:
+                print(f'  Left out: {validations} validation(s) of those labels, whose agree/disagree/unsure counts '
+                      'were reset to match.')
         # A QA walk moves a street's priority off the 1 the fill assigns, in a table the dump keeps. The reset lands
-        # on the copy, so the local schema keeps what the walk did.
-        run_or_exit([*psql, '-v', f'schema={schema}',
-                     '-c', f"DO $$ BEGIN EXECUTE format('COMMENT ON SCHEMA {set_aside_name(schema)} IS %L', "
-                           f"'{COPY_NOTE}' || '{schema}'::regnamespace::oid); END $$",
+        # on the copy, so the local schema keeps what the walk did. A kept user's streets are reset too: the nightly
+        # priority recalculation counts their audits again, through audit_task and user_stat, both kept.
+        run_or_exit([*psql, '-v', f'schema={schema}', *note_copy,
                      '-f', '/opt/scripts/seed-city-rows.sql',
                      '-c', f'UPDATE {schema}.street_edge_priority SET priority = 1 WHERE priority <> 1'],
                     f'seeding the clean copy of {schema} failed',
@@ -1328,6 +1542,10 @@ def main(argv=None):
                              'streets outside it are disabled.')
     parser.add_argument('--dump-only', action='store_true',
                         help='Run only step 9 — the dump and the handoff — for a city QA\'d after its first dump.')
+    parser.add_argument('--keep-user', action='append', default=[], metavar='USERNAME',
+                        help='Step 9: carry this user\'s Explore work (audits, missions, labels, routes) into the '
+                             'dump, for an expert audit done locally before launch. Repeatable. Everyone else\'s '
+                             'rows stay out as always.')
     parser.add_argument('--allow-running-apps', action='store_true',
                         help="Boot for the evolutions even with a build running in the web container's checkout, "
                              'when you know it is idle. Without it, an interactive run waits for you to stop that '
@@ -1372,8 +1590,9 @@ def main(argv=None):
         if streets <= 1:
             sys.exit(f'error: {schema} is still an unfilled clone ({streets} street(s)), so there is nothing to '
                      'dump yet; run without --dump-only to fill it.')
+        keep_users = resolve_keep_users(schema, args.keep_user)
         print(f'Step 9/9 — dump the finished schema {schema} for the server...')
-        dump_schema(schema)
+        dump_schema(schema, keep_users)
         # A table that could not be read must not read as "not sampled": that advice would send the operator back
         # through a step that may well have run.
         gradient_rows = db_query(f'SELECT count(*) FROM {schema}.street_gradient')
@@ -1592,7 +1811,7 @@ def main(argv=None):
         gradient = run_street_gradient(schema, city_id, sampler_args)
 
     print('\nStep 9/9 — dump the finished schema for the server...')
-    dump_schema(schema)
+    dump_schema(schema, resolve_keep_users(schema, args.keep_user))
 
     print(f'''
 Done — {display_name}'s schema is populated. To develop against it, set SIDEWALK_CITY_ID={city_id} and
