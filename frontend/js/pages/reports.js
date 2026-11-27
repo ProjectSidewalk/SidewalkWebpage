@@ -136,6 +136,12 @@ window.appManager.ready(() => {
   sidebar.classList.add('is-foldable');
   const scroller = document.getElementById('reports-table-scroll');
   if (scroller) focusableWhileScrolling(scroller);
+  // The pinned map and panel's height, so a row's focused control scrolls clear of them.
+  const top = shell.querySelector('.reports-top');
+  if (top) {
+    new ResizeObserver(() => shell.style.setProperty('--reports-top-height', `${top.getBoundingClientRect().height}px`))
+      .observe(top);
+  }
 
   // Scored rows lowest first, unscored after: the server's order is the Score sort, ascending.
   // With no scored row the server orders by Explored, so the page claims no sort.

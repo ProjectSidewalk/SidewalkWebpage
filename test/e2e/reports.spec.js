@@ -143,6 +143,35 @@ test.describe('/reports', () => {
     await expect.poll(() => activities).toContain(`Report_City_Select_Region=${other.id}_From=Table`);
   });
 
+  test('keeps the map and panel in view over a long table, and a focused row control clear of them', async ({page}) => {
+    await openReports(page);
+    // Room to scroll however few neighborhoods the city has.
+    await page.evaluate(() => {
+      const spacer = document.createElement('div');
+      spacer.style.height = '3000px';
+      document.getElementById('reports-page').append(spacer);
+    });
+    const band = page.locator('.reports-top');
+    const navBottom = await page.locator('#header').evaluate((h) => h.getBoundingClientRect().bottom);
+    // Mid-spacer, not the bottom: at the column's end a sticky box leaves with it.
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await expect.poll(() => band.evaluate((b) => Math.round(b.getBoundingClientRect().top))).toBe(Math.round(navBottom));
+
+    // A row scrolled under the band, then its "Show on map" focused: it must land below the band, not behind it.
+    const button = page.locator('#reports-table tbody tr .reports-table__select').first();
+    await page.evaluate(() => {
+      const bandBottom = document.querySelector('.reports-top').getBoundingClientRect().bottom;
+      const row = document.querySelector('#reports-table tbody tr');
+      window.scrollBy(0, row.getBoundingClientRect().top - (bandBottom - 40));
+    });
+    await button.focus();
+    const [bandBottom, buttonTop] = await page.evaluate(() => [
+      document.querySelector('.reports-top').getBoundingClientRect().bottom,
+      document.querySelector('#reports-table tbody tr .reports-table__select').getBoundingClientRect().top,
+    ]);
+    expect(buttonTop).toBeGreaterThanOrEqual(bandBottom);
+  });
+
   test('a keyboard selects a neighborhood with its row\'s "Show on map" button', async ({page}) => {
     const data = await openReports(page);
     test.skip(data.rows.length < 2, 'the city has one neighborhood, so there is nothing else to pick');

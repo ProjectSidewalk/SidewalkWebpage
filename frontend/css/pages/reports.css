@@ -1,8 +1,9 @@
 /* The city reports page (#6041), in the .page-* shell like a neighborhood's report: a left sidebar with the title, the
    lens and filter controls and the legend (components/tool-sidebar.css), then the page: the map with the selected
-   neighborhood's profile beside it, and the table of every neighborhood below. Nothing in the page is pinned and
-   nothing scrolls inside it except the table's sideways overflow on a tablet. Colors that mean something (the score
-   ramp, the label types) are painted by pages/reports.js from the tokens; this sheet only lays the pieces out. */
+   neighborhood's profile beside it, and the table of every neighborhood below. On a tall desktop screen the map
+   and profile stay pinned while the table scrolls under them; elsewhere nothing is pinned. Colors that mean
+   something (the score ramp, the label types) are painted by pages/reports.js from the tokens; this sheet only lays
+   the pieces out. */
 
 .reports-shell {
   --sidebar-width: 260px;
@@ -150,6 +151,35 @@
 @media (width <= 768px) {
   .reports-map {
     height: 320px;
+  }
+}
+
+/* var(--breakpoint-md), on a screen tall enough to leave the table room: the map and profile stay in view while the
+   table scrolls under them, so a pick far down a long table is seen. */
+@media (width > 992px) and (height >= 800px) {
+  .reports-top {
+    position: sticky;
+    top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+    z-index: var(--z-index-sticky);
+    padding-block: var(--space-sm);
+    background: var(--color-neutral-white);
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  .reports-map {
+    height: min(440px, 40vh);
+  }
+
+  /* A long profile scrolls inside rather than making the band taller than the map. */
+  .reports-panel {
+    max-height: min(440px, 40vh);
+    overflow-y: auto;
+  }
+
+  /* A focused link or button in a row scrolls clear of the band (WCAG 2.4.11); reports.js measures it. */
+  .reports-table tbody :is(a, button) {
+    scroll-margin-top:
+      calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--reports-top-height, 0px) + var(--space-sm));
   }
 }
 
