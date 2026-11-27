@@ -353,7 +353,8 @@ class ReportServiceImpl @Inject() (
 
   def cityReport: Future[CityReport] = {
     // Started together: the scores can hold the request up to FullCityColdWait on a cold cache, and the rest is cheap.
-    val scoresF      = accessScoreService.getFullCityScores(BatchSize)
+    // A failed pass lists the neighborhoods unscored, as a cold one does, rather than costing the page.
+    val scoresF      = accessScoreService.getFullCityScores(BatchSize).recover { case _ => None }
     val regionsF     = regionService.getAllRegions
     val completionsF = regionService.getRegionCompletions(Seq.empty)
     val talliesF     = cityTallies

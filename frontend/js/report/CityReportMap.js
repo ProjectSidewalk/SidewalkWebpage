@@ -72,7 +72,7 @@ function mix(from, to, t) {
 /** @typedef {CityReportMapRow & import('./cityReportPanel.js').CityReportRow} CityReportMapEntry */
 
 /**
- * The color a neighborhood wears under a lens. Exported for the page's legend, which paints from the same rules.
+ * The color a neighborhood wears under a lens. Exported for its tests.
  * @param {CityReportMapRow} row
  * @param {import('./CityReportState.js').CityReportLens} lens
  * @returns {string} A color.
@@ -169,6 +169,12 @@ export class CityReportMap {
     });
     this.#pinned.on('close', () => {
       this.#pinnedId = null;
+    });
+    // Escape dismisses either card without moving the pointer (WCAG 1.4.13).
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      this.#hideTooltip();
+      this.#pinned.remove();
     });
     this.#map.once('load', () => {
       this.#addLayers(shown, Boolean(tilesUrl));

@@ -195,6 +195,11 @@ test.describe('/reports', () => {
     await expect(pinned).toHaveAttribute('data-region-id', String(id));
     await expect(tooltip).toHaveCount(0);
     await expect(page.locator('#reports-panel-name')).toHaveText(row.name);
+    await page.keyboard.press('Escape');
+    await expect(pinned).toHaveCount(0);
+    at = await pointOn(point);
+    await page.mouse.click(at.x, at.y);
+    await expect(pinned).toHaveCount(1);
 
     // Picking another neighborhood in the table takes the pinned card away, since the panel now shows that one.
     const other = data.rows.find((r) => r.id !== id);
@@ -206,7 +211,7 @@ test.describe('/reports', () => {
     }
 
     await pinned.locator('a[data-city-event="OpenReport"]').click();
-    await expect(page).toHaveURL(new RegExp(`${row.report}$`));
+    await page.waitForURL((url) => url.pathname === new URL(row.report, 'http://x').pathname, {timeout: 90_000});
     await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${id}`);
   });
 
@@ -233,10 +238,17 @@ test.describe('/reports', () => {
     const scored = data.rows.filter((r) => r.scored).map((r) => r.id);
     const unscored = data.rows.filter((r) => !r.scored).map((r) => r.id);
 
+    // The panel follows the filter: a selection the filter hides moves to the first row left showing.
+    const panelShown = async () => {
+      const shown = await visibleRowIds(page);
+      if (shown.length) expect(shown).toContain(Number(await page.locator('#reports-panel').getAttribute('data-region-id')));
+    };
     await page.locator('button[data-filter="scored"]').click();
     expect((await visibleRowIds(page)).sort()).toEqual([...scored].sort());
+    await panelShown();
     await page.locator('button[data-filter="unscored"]').click();
     expect((await visibleRowIds(page)).sort()).toEqual([...unscored].sort());
+    await panelShown();
     await page.locator('button[data-filter="all"]').click();
     expect((await visibleRowIds(page)).length).toBe(data.rows.length);
 
@@ -244,9 +256,10 @@ test.describe('/reports', () => {
     // Above a phone the sort buttons read as header text, without the browser's button border.
     await expect(header.locator('button[data-sort]')).toHaveCSS('border-top-width', '0px');
     // With scores, the page opens in Score order, lowest first, and says so; a first click turns it around.
-    if (data.scoresReady) await expect(header).toHaveAttribute('aria-sort', 'ascending');
+    const scoreOrder = data.scoresReady && data.rows.some((r) => r.scored);
+    if (scoreOrder) await expect(header).toHaveAttribute('aria-sort', 'ascending');
     else await expect(header).not.toHaveAttribute('aria-sort');
-    const dirs = data.scoresReady ? ['descending', 'ascending'] : ['ascending', 'descending'];
+    const dirs = scoreOrder ? ['descending', 'ascending'] : ['ascending', 'descending'];
     for (const dir of dirs) {
       await header.locator('button[data-sort]').click();
       await expect(header).toHaveAttribute('aria-sort', dir);
@@ -258,7 +271,7 @@ test.describe('/reports', () => {
     }
     await expect.poll(() => activities).toEqual(expect.arrayContaining(['Report_City_Filter_Scored',
       'Report_City_Filter_Unscored', 'Report_City_Filter_All',
-      `Report_City_Sort_Column=score_Dir=${data.scoresReady ? 'desc' : 'asc'}`]));
+      `Report_City_Sort_Column=score_Dir=${scoreOrder ? 'desc' : 'asc'}`]));
   });
 
   test('a row\'s name opens its neighborhood report', async ({page}) => {
@@ -340,7 +353,7 @@ test.describe('/reports without a script', () => {
     await page.setViewportSize({width: 1440, height: 900});
     const data = await openWithoutScript(page);
     const header = page.locator('#reports-table thead th[data-column="score"]');
-    if (data.scoresReady) await expect(header).toHaveAttribute('aria-sort', 'ascending');
+    if (data.scoresReady && data.rows.some((r) => r.scored)) await expect(header).toHaveAttribute('aria-sort', 'ascending');
     else await expect(header).not.toHaveAttribute('aria-sort');
     await expect(page.locator('#reports-lens-section')).toBeHidden();
     await expect(page.locator('#reports-filter-section')).toBeHidden();

@@ -150,8 +150,16 @@ window.appManager.ready(() => {
   for (const button of lensButtons) {
     button.addEventListener('click', () => state.setLens(/** @type {any} */ (button.dataset.lens)));
   }
+  const table = /** @type {HTMLTableElement} */ (document.getElementById('reports-table'));
   for (const button of filterButtons) {
-    button.addEventListener('click', () => state.setFilter(/** @type {any} */ (button.dataset.filter)));
+    button.addEventListener('click', () => {
+      state.setFilter(/** @type {any} */ (button.dataset.filter));
+      // A selection the filter hides would leave the panel describing a row the table doesn't show.
+      if (state.selected !== null && !state.inFilter(state.selected)) {
+        const first = /** @type {?HTMLElement} */ (table.querySelector('tbody tr[data-region-id]:not([hidden])'));
+        if (first) state.select(Number(first.dataset.regionId), 'Filter');
+      }
+    });
   }
   document.getElementById('reports-lens-section').hidden = false;
   document.getElementById('reports-filter-section').hidden = false;

@@ -559,7 +559,7 @@ so far, shrunk to fit when they pass it, so one barely explored neighborhood can
 `ReportService.cityReport` reads the same `getFullCityScores` cache as the reports. The quality columns come from one
 streamed pass over the city's raw labels (`ApiService.getRawLabels`), folded per region into `CoverageTally`, the
 same fold `Coverage.from` uses for a single report, and cached stale-while-revalidate (`ReportService.QualityCacheKey`,
-fresh an hour, kept twelve). The tally carries the time its pass finished (`CityTallies.countedAt`) and the header
+fresh an hour, kept twelve). The tally carries the time its pass finished (`CityTallies.countedAt`) and the sidebar
 states it, since it can be hours older than the page. Neither pass blocks the page for long: while scores or the tally
 are cold, it renders its rows without them and says what it is waiting for, rather than answering 503 as a report
 does. A failed tally leaves the quality columns "still counting"; `SwrCache` logs the failure once per attempt.

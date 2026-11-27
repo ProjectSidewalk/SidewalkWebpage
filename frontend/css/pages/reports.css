@@ -491,9 +491,11 @@
   text-decoration: none;
 }
 
-/* Stacked, one per line, so the column stays narrow. */
+/* Stacked, one per line, so the column stays narrow; each a 24px target (WCAG 2.5.8). */
 .reports-table td[data-column="links"] .reports-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 /* ---- Map cards: a hover card, and the one a click pins with the links ---------------------------------------- */

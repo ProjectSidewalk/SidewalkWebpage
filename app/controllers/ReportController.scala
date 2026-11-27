@@ -68,9 +68,9 @@ class ReportController @Inject() (
    * The city reports page (#6041): every neighborhood on a map and in a table, how each scores and why, and how much
    * data is behind it, each leading to its report. Served as-is on phones, for the same reasons as a report.
    *
-   * Always a 200. A cold AccessScore cache can still hold the request up to `AccessScoreService.FullCityColdWait`, as
-   * it does for the tool; past that the page lists the neighborhoods without scores and says so, and the same goes for
-   * the label tally behind its quality columns.
+   * A 200 unless the regions can't be read. A cold AccessScore cache can still hold the request up to
+   * `AccessScoreService.FullCityColdWait`, as it does for the tool; past that, or if the scores or the label tally
+   * behind the quality columns fail, the page lists the neighborhoods without them and says so.
    *
    * @return `Ok` with the page.
    */

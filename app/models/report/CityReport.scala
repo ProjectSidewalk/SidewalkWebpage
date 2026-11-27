@@ -320,12 +320,11 @@ object CityReportClientData {
    */
   def toJson(report: CityReport, basemap: JsObject)(using request: RequestHeader, messages: Messages): JsValue =
     Json.obj(
-      "basemap"       -> basemap,
-      "scoresReady"   -> report.scoresReady,
-      "qualityReady"  -> report.qualityReady,
-      "minCompletion" -> report.minCompletionPercent / 100.0,
-      "selected"      -> report.selected.map(_.regionId),
-      "typeNames"     -> JsObject(
+      "basemap"      -> basemap,
+      "scoresReady"  -> report.scoresReady,
+      "qualityReady" -> report.qualityReady,
+      "selected"     -> report.selected.map(_.regionId),
+      "typeNames"    -> JsObject(
         AccessScoreCalculator.orderedScoredTypes.map(t => t -> JsString(CityReportFormat.typeName(t)))
       ),
       "rows" -> report.rows.map { row =>

@@ -13,7 +13,7 @@
 /**
  * @typedef {object} CityReportChange
  * @property {CityReportChangeType} type - What changed.
- * @property {string} [from] - For a selection, where it was made: `Map`, `Table` or `Panel`.
+ * @property {string} [from] - For a selection, where it was made: `Map`, `Table` or `Filter`.
  */
 
 const LENSES = new Set(['score', 'explored', 'problem']);
@@ -90,7 +90,7 @@ export class CityReportState {
    * Selects a neighborhood everywhere. Picking one the filter hides shows everything again, since a selection nobody
    * can see in the table would leave the panel describing a row that isn't there.
    * @param {number} id - The region id.
-   * @param {string} from - Where it was picked: `Map`, `Table` or `Panel`, for the log.
+   * @param {string} from - Where it was picked: `Map`, `Table` or `Filter`, for the log.
    */
   select(id, from) {
     if (id === this.#selected && this.inFilter(id)) return;
