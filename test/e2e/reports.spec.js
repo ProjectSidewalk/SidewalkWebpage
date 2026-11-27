@@ -186,6 +186,8 @@ test.describe('/reports', () => {
     expect((await visibleRowIds(page)).length).toBe(data.rows.length);
 
     const header = page.locator('#reports-table thead th[data-column="score"]');
+    // Above a phone the sort buttons read as header text, without the browser's button border.
+    await expect(header.locator('button[data-sort]')).toHaveCSS('border-top-width', '0px');
     // With scores, the page opens in Score order, lowest first, and says so; a first click turns it around.
     if (data.scoresReady) await expect(header).toHaveAttribute('aria-sort', 'ascending');
     else await expect(header).not.toHaveAttribute('aria-sort');

@@ -476,16 +476,20 @@
   white-space: nowrap;
 }
 
-/* A button that reads as the links beside it. */
+/* Buttons that read as text: the sort headers, and "Show on map" as the links beside it. */
+.reports-table__sort,
 .reports-table__select {
   padding: 0;
-  font: inherit;
-  color: var(--color-link-200);
   text-align: left;
-  text-decoration: underline;
   cursor: pointer;
   background: none;
   border: 0;
+}
+
+.reports-table__select {
+  font: inherit;
+  color: var(--color-link-200);
+  text-decoration: underline;
 }
 
 .reports-table__select[aria-pressed="true"] {
