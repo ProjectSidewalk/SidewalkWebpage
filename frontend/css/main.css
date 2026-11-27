@@ -721,6 +721,9 @@ textarea.ps-input {
    variants are in components/tables.css, and a page adds only what its own table needs on top. Mark a numeric cell
    with `.num` so it right-aligns with tabular figures; `.ps-table--compact` tightens the cells for dense admin data. */
 .ps-table-wrapper {
+  /* The containing block for an absolute child (.sr-only text in a cell), which would otherwise escape the scroll
+     and widen the page on a phone. */
+  position: relative;
   overflow-x: auto;
   margin-bottom: var(--space-lg);
   border-radius: var(--border-radius);

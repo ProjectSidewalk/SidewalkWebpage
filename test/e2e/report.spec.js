@@ -339,3 +339,20 @@ test.describe('/report/neighborhood', () => {
       }
     });
 });
+
+test.describe('/report/neighborhood on a phone', () => {
+  test.use({viewport: {width: 390, height: 844}});
+
+  test('screen-reader text in a table\'s far cell stays inside its scroller', async ({page, request}) => {
+    await openReport(page, request);
+    // Planted, since which cells say "Not rated" depends on the city's data.
+    const pageWidth = await page.evaluate(() => {
+      const cell = document.querySelector('.ps-table-wrapper tbody tr td:last-child');
+      if (!cell) return null;
+      cell.insertAdjacentHTML('beforeend', '<span class="sr-only">Not rated</span>');
+      return document.documentElement.scrollWidth;
+    });
+    test.skip(pageWidth === null, 'the report has no table to scroll');
+    expect(pageWidth).toBeLessThanOrEqual(390);
+  });
+});
