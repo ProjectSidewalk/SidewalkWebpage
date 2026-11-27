@@ -204,6 +204,8 @@ window.appManager.ready(() => {
   // The page works without its map, so a failed polygon fetch leaves the table and panel as they are.
   const container = document.getElementById('reports-map');
   util.fetchJson('/regions')
-    .then((regions) => new CityReportMap(container, { basemap: data.basemap, regions, rows: data.rows, state }))
+    .then((regions) => new CityReportMap(container, {
+      basemap: data.basemap, regions, rows: data.rows, scoresReady: data.scoresReady, state,
+    }))
     .catch((error) => console.error('The city reports map could not load its neighborhoods', error));
 });

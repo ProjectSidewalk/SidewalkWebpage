@@ -4,6 +4,7 @@
  *
  * It draws the shared state and writes the pointer's hover and click back to it; it never talks to the table. The table
  * is the page's keyboard and screen-reader path to the same neighborhoods, so the canvas is a picture to point at.
+ * Hovering a shape shows its card; a click selects it and pins the card with its links.
  */
 
 import * as maplibregl from 'maplibre-gl';
@@ -13,6 +14,7 @@ import { Protocol } from 'pmtiles';
 import i18next from 'i18next';
 import { MinimapBasemapStyle } from '../explore/navigation/MinimapBasemapStyle.js';
 import { ScoreRamp } from '../common/scoreRamp.js';
+import { mapCard } from './cityReportMapCard.js';
 import { util } from '../common/utilities.js';
 import '../common/utilitiesSidewalk.js';
 
@@ -67,6 +69,8 @@ function mix(from, to, t) {
  * @property {?string} topType - The type that lowers its score most.
  */
 
+/** @typedef {CityReportMapRow & import('./cityReportPanel.js').CityReportRow} CityReportMapEntry */
+
 /**
  * The color a neighborhood wears under a lens. Exported for the page's legend, which paints from the same rules.
  * @param {CityReportMapRow} row
@@ -90,21 +94,35 @@ export class CityReportMap {
   #map;
   /** @type {import('./CityReportState.js').CityReportState} */
   #state;
-  /** @type {CityReportMapRow[]} */
+  /** @type {CityReportMapEntry[]} */
   #rows;
+  /** @type {Map<number, CityReportMapEntry>} */
+  #rowsById;
+  #scoresReady;
   #loaded = false;
+  /** The hover card, which follows the pointer. */
+  #tooltip;
+  /** The card a click pins, holding the links. */
+  #pinned;
+  /** @type {?number} */
+  #tooltipId = null;
+  /** @type {?number} */
+  #pinnedId = null;
 
   /**
    * @param {HTMLElement} container - Where the map goes.
    * @param {object} options - What it draws.
    * @param {{tilesUrl: ?string, glyphsUrl: string}} options.basemap - The city's tile archive and glyphs.
    * @param {GeoJSON.FeatureCollection} options.regions - The `/regions` polygons (`region_id`, `name`).
-   * @param {CityReportMapRow[]} options.rows - The page's neighborhoods; a polygon with no row isn't drawn.
+   * @param {CityReportMapEntry[]} options.rows - The page's neighborhoods; a polygon with no row isn't drawn.
+   * @param {boolean} options.scoresReady - Whether the city's scores are in, for the cards.
    * @param {import('./CityReportState.js').CityReportState} options.state - The page's shared state.
    */
-  constructor(container, { basemap, regions, rows, state }) {
+  constructor(container, { basemap, regions, rows, scoresReady, state }) {
     this.#state = state;
     this.#rows = rows;
+    this.#rowsById = new Map(rows.map((r) => [r.id, r]));
+    this.#scoresReady = scoresReady;
     const ids = new Set(rows.map((r) => r.id));
     const features = regions.features.filter((f) => ids.has(f.properties.region_id));
     const shown = /** @type {GeoJSON.FeatureCollection} */ ({ type: 'FeatureCollection', features });
@@ -134,19 +152,33 @@ export class CityReportMap {
         'CooperativeGesturesHandler.WindowsHelpText': i18next.t('report:map.gesture-windows'),
         'CooperativeGesturesHandler.MacHelpText': i18next.t('report:map.gesture-mac'),
         'CooperativeGesturesHandler.MobileHelpText': i18next.t('report:map.gesture-touch'),
+        'Popup.Close': i18next.t('report:worst.close'),
       },
     });
     this.#map.touchZoomRotate.disableRotation();
     this.#map.keyboard.disableRotation();
     this.#map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     this.#map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+    this.#tooltip = new maplibregl.Popup({
+      closeButton: false, closeOnClick: false, focusAfterOpen: false, className: 'reports-map-tooltip', offset: 12,
+      maxWidth: '260px',
+    });
+    // Not closed by MapLibre's own map click: the click handlers below decide, so a click on another shape moves it.
+    this.#pinned = new maplibregl.Popup({
+      closeOnClick: false, focusAfterOpen: false, className: 'reports-map-popup', maxWidth: '280px',
+    });
+    this.#pinned.on('close', () => {
+      this.#pinnedId = null;
+    });
     this.#map.once('load', () => {
       this.#addLayers(shown, Boolean(tilesUrl));
       this.#bindPointer();
       this.#loaded = true;
       this.#paint();
     });
-    state.subscribe((_, change) => {
+    state.subscribe((current, change) => {
+      // A neighborhood picked in the table shows in the panel; a pinned card for another one would contradict it.
+      if (change.type === 'select' && current.selected !== this.#pinnedId) this.#pinned.remove();
       if (this.#loaded) this.#paint(change.type);
     });
   }
@@ -232,21 +264,60 @@ export class CityReportMap {
     }
   }
 
-  /** The pointer's hover and click on a neighborhood go to the state, which redraws the map and the table alike. */
+  /**
+   * The pointer's hover and click on a neighborhood go to the state, which redraws the map and the table alike, and
+   * show its card: following the pointer on a hover, pinned where it was clicked.
+   */
   #bindPointer() {
     this.#map.on('mousemove', FILL_LAYER, (e) => {
       this.#map.getCanvas().style.cursor = 'pointer';
       const id = e.features?.[0]?.id;
-      if (typeof id === 'number') this.#state.hover(id);
+      if (typeof id !== 'number') return;
+      this.#state.hover(id);
+      this.#showTooltip(id, e.lngLat);
     });
     this.#map.on('mouseleave', FILL_LAYER, () => {
       this.#map.getCanvas().style.cursor = '';
       this.#state.hover(null);
+      this.#hideTooltip();
     });
-    this.#map.on('click', FILL_LAYER, (e) => {
-      const id = e.features?.[0]?.id;
-      if (typeof id === 'number') this.#state.select(id, 'Map');
+    this.#map.on('click', (e) => {
+      const hit = this.#map.queryRenderedFeatures(e.point, { layers: [FILL_LAYER] })[0];
+      if (typeof hit?.id !== 'number') {
+        this.#pinned.remove();
+        return;
+      }
+      this.#state.select(hit.id, 'Map');
+      this.#hideTooltip();
+      this.#pinned.setLngLat(e.lngLat)
+        .setDOMContent(mapCard(this.#rowsById.get(hit.id), { scoresReady: this.#scoresReady, pinned: true }))
+        .addTo(this.#map);
+      this.#pinnedId = hit.id;
     });
+  }
+
+  /**
+   * Shows a neighborhood's hover card at the pointer, building it only when the neighborhood changes.
+   * @param {number} id - The neighborhood.
+   * @param {maplibregl.LngLat} lngLat - The pointer.
+   */
+  #showTooltip(id, lngLat) {
+    // Its pinned card already says all of it.
+    if (id === this.#pinnedId) {
+      this.#hideTooltip();
+      return;
+    }
+    if (id !== this.#tooltipId) {
+      this.#tooltip.setDOMContent(mapCard(this.#rowsById.get(id), { scoresReady: this.#scoresReady, pinned: false }));
+      this.#tooltipId = id;
+    }
+    this.#tooltip.setLngLat(lngLat);
+    if (!this.#tooltip.isOpen()) this.#tooltip.addTo(this.#map);
+  }
+
+  #hideTooltip() {
+    this.#tooltip.remove();
+    this.#tooltipId = null;
   }
 
   /**

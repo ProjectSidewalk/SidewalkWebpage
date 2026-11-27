@@ -40,6 +40,7 @@
     "help-explore": "Beim Erkunden helfen",
     "not-scored": "Noch kein Wert",
     "counting": "Wird noch gezählt",
-    "no-data": "Keine Daten"
+    "no-data": "Keine Daten",
+    "map-hint": "Klicken für den Link zum Bericht"
   }
 }

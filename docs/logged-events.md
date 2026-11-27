@@ -88,8 +88,8 @@ The city reports page (`/reports`, #6041) records `Visit_Report_City` from the s
 `Report_City_Lens_<Score|Explored|Problem>`, `Report_City_Filter_<All|Scored|Unscored>`,
 `Report_City_Sort_Column=<column>_Dir=<asc|desc>`, `Report_City_Select_Region=<id>_From=<Map|Table>` (a neighborhood
 picked by clicking its shape, its row's "Show on map" button, or anywhere in its row but the links; one picked from a shape the filter fades also resets the filter, which logs no
-`Filter` event), `Report_City_OpenReport_Region=<id>` and `Report_City_HelpExplore_Region=<id>` (from its table row or
-its profile panel alike), `Report_City_Feedback` (the Beta note's email link), and
+`Filter` event), `Report_City_OpenReport_Region=<id>` and `Report_City_HelpExplore_Region=<id>` (from its table row, its
+profile panel or its pinned map card alike), `Report_City_Feedback` (the Beta note's email link), and
 `Report_City_SidebarToggle_Open=<bool>` (the phone strip's button that opens the sidebar's controls). The Tools menu's Reports item, on
 every page, logs `Click_module=Reports` with the navbar's usual `_location=<…>_route=<…>`.
 Follow these when adding a page or action. A settings save that actually moves the measurement units also logs

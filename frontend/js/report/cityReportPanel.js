@@ -84,11 +84,11 @@ function causesOf(row, typeNames) {
 }
 
 /**
- * The links to its report and, when it asks for help, to Explore.
+ * The links to its report and, when it asks for help, to Explore. The map's pinned card shows them too.
  * @param {CityReportRow} row
  * @returns {string} Markup.
  */
-function linksOf(row) {
+export function linksOf(row) {
   const report = `<a class="reports-link" href="${util.escapeHTML(row.report)}" data-city-event="OpenReport"
     data-i18n="report:city.open-report"></a>`;
   if (!row.explore) return report;

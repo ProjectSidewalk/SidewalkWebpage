@@ -567,7 +567,9 @@ does. A failed tally leaves the quality columns "still counting"; `SwrCache` log
 The header, table and the first neighborhood's profile are server-rendered; `frontend/js/report/` adds the rest. One
 `CityReportState` holds the selection, hover, lens, filter and sort, and the map (`CityReportMap`, MapLibre over the
 city's PMTiles with the `/regions` polygons, so no billable Google or Mapbox call), the table (`CityReportTable`) and
-the profile panel each draw from it. The table is the keyboard and screen-reader path to the neighborhoods: a row's
+the profile panel each draw from it. Hovering a shape shows a small card for it, and a click selects it and pins
+the card with its links (`cityReportMapCard.js`). The table is the keyboard and screen-reader path to the
+neighborhoods: a row's
 name opens its report, and its "Show on map" button selects it (a click anywhere else in the row does too); on a phone
 its rows become labeled cards, and its header row stays as a row of visible sort buttons. The page sits in the same
 left-sidebar shell as a neighborhood report (`components/tool-sidebar.css`): the sidebar's head names it ("City

@@ -40,6 +40,7 @@
     "help-explore": "Help verkennen",
     "not-scored": "Nog geen score",
     "counting": "Wordt nog geteld",
-    "no-data": "Geen gegevens"
+    "no-data": "Geen gegevens",
+    "map-hint": "Klik voor de link naar het rapport"
   }
 }

@@ -40,6 +40,7 @@
     "help-explore": "Ayudar a explorar",
     "not-scored": "Aún sin puntuación",
     "counting": "Contando todavía",
-    "no-data": "Sin datos"
+    "no-data": "Sin datos",
+    "map-hint": "Haz clic para ver el enlace al informe"
   }
 }

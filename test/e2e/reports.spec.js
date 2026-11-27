@@ -155,6 +155,54 @@ test.describe('/reports', () => {
     await expect(button).toHaveAccessibleName(new RegExp(other.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
 
+  test('hovering a shape shows its card, and a click pins it with the link to its report', async ({page}) => {
+    const activities = logged(page);
+    const data = await openReports(page);
+    const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
+    const box = await canvas.boundingBox();
+    const tooltip = page.locator('.reports-map-tooltip .reports-map-card');
+
+    // Which shape sits where depends on the city, so sweep a grid until the pointer lands on one; the sweep also waits
+    // out the map's load, before which nothing answers a hover.
+    let point = null;
+    await expect.poll(async () => {
+      for (const fx of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+        for (const fy of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+          const at = {x: box.x + box.width * fx, y: box.y + box.height * fy};
+          await page.mouse.move(at.x, at.y);
+          if (await tooltip.isVisible()) {
+            point = at;
+            return true;
+          }
+        }
+      }
+      return false;
+    }, {timeout: 20_000}).toBe(true);
+
+    const id = Number(await tooltip.getAttribute('data-region-id'));
+    const row = data.rows.find((r) => r.id === id);
+    await expect(tooltip.locator('.reports-map-card__name')).toHaveText(row.name);
+    await expect(tooltip.locator('a')).toHaveCount(0);
+
+    await page.mouse.click(point.x, point.y);
+    const pinned = page.locator('.reports-map-popup .reports-map-card');
+    await expect(pinned).toHaveAttribute('data-region-id', String(id));
+    await expect(tooltip).toHaveCount(0);
+    await expect(page.locator('#reports-panel-name')).toHaveText(row.name);
+
+    // Picking another neighborhood in the table takes the pinned card away, since the panel now shows that one.
+    const other = data.rows.find((r) => r.id !== id);
+    if (other) {
+      await page.locator(`#reports-table tr[data-region-id="${other.id}"] td[data-column="score"]`).click();
+      await expect(pinned).toHaveCount(0);
+      await page.mouse.click(point.x, point.y);
+    }
+
+    await pinned.locator('a[data-city-event="OpenReport"]').click();
+    await expect(page).toHaveURL(new RegExp(`${row.report}$`));
+    await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${id}`);
+  });
+
   test('a lens swaps the legend and the table\'s marked column', async ({page}) => {
     const activities = logged(page);
     await openReports(page);

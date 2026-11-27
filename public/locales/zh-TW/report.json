@@ -38,6 +38,7 @@
     "help-explore": "協助探索",
     "not-scored": "尚未評分",
     "counting": "統計中",
-    "no-data": "無資料"
+    "no-data": "無資料",
+    "map-hint": "點一下即可取得報告連結"
   }
 }

@@ -502,6 +502,74 @@
   display: block;
 }
 
+/* ---- Map cards: a hover card, and the one a click pins with the links ---------------------------------------- */
+
+.reports-map-tooltip .maplibregl-popup-content,
+.reports-map-popup .maplibregl-popup-content {
+  padding: var(--space-sm) var(--space-md);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-900);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+}
+
+/* The hover card follows the pointer, so it must never catch the click meant for the shape under it. */
+.reports-map-tooltip,
+.reports-map-tooltip .maplibregl-popup-content {
+  pointer-events: none;
+}
+
+/* Room for the close button beside the name. */
+.reports-map-popup .reports-map-card {
+  padding-right: var(--space-md);
+}
+
+/* A 24px target (WCAG 2.5.8). */
+.reports-map-popup .maplibregl-popup-close-button {
+  width: 24px;
+  height: 24px;
+  font: var(--text-body-bold);
+}
+
+.reports-map-card p {
+  margin: 0;
+}
+
+.reports-map-card p + p {
+  margin-top: var(--space-xxs);
+}
+
+/* The primary font rather than the accent one: neighborhood names can hold digits. */
+.reports-map-card__name {
+  font: var(--text-small-bold);
+}
+
+.reports-map-card__score {
+  font: var(--text-title-bold);
+}
+
+.reports-map-card__score--none {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+.reports-map-card__why,
+.reports-map-card__explored {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-map-card__hint {
+  font: var(--text-tiny-regular);
+  color: var(--color-neutral-700);
+}
+
+.reports-map-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs) var(--space-md);
+}
+
 /* Only a phone shows it, above the sort buttons the header row becomes there. */
 .reports-sort-label {
   display: none;
