@@ -102,13 +102,13 @@ export class CityReportTable {
     });
     this.#table.tBodies[0].addEventListener('mouseover', (e) => {
       const id = this.#rowId(/** @type {Element} */ (e.target));
-      if (id !== null) this.#state.hover(id);
+      if (id !== null) this.#state.hover(id, 'Table');
     });
     this.#table.tBodies[0].addEventListener('mouseout', (e) => {
       const from = /** @type {Element} */ (e.target).closest('tr');
       const to = /** @type {?Node} */ (e.relatedTarget);
       // Moving between a row's own cells is not leaving it.
-      if (from && !(to instanceof Node && from.contains(to))) this.#state.hover(null);
+      if (from && !(to instanceof Node && from.contains(to))) this.#state.hover(null, 'Table');
     });
   }
 

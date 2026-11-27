@@ -146,7 +146,7 @@ describe('CityReportTable', () => {
     rowOf(12).dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body }));
     expect(state.hovered).toBeNull();
     expect(rowOf(12).classList.contains('is-hovered')).toBe(false);
-    state.hover(14);
+    state.hover(14, 'Map');
     expect(rowOf(14).classList.contains('is-hovered')).toBe(true);
   });
 

@@ -19,15 +19,20 @@
 
 <div class="reports-panel__head">
   @row.score.score.map { score =>
-    <span class="reports-swatch reports-swatch--large" data-score="@score" aria-hidden="true"></span>
-    <p class="reports-panel__score">@ReportFormat.score(score)</p>
+    <div class="reports-panel__score-line">
+      <span class="reports-swatch reports-swatch--large" data-score="@score" aria-hidden="true"></span>
+      <p class="reports-panel__score">@ReportFormat.score(score)</p>
+    </div>
   }.getOrElse {
     @* As the table: while scores compute, or with no streets, the sentence below says why instead. *@
     @if(report.scoresReady && row.hasStreets) {
-      <p class="reports-panel__score reports-panel__score--none">@Messages("report.score.none")</p>
+      <div class="reports-panel__score-line">
+        <p class="reports-panel__score reports-panel__score--none">@Messages("report.score.none")</p>
+      </div>
     }
   }
   <h2 class="reports-panel__name" id="reports-panel-name">@row.name</h2>
+  <a class="button button--primary button--small reports-panel__open" href="@ReportLinks.report(row.slug)" data-city-event="OpenReport">@Messages("report.city.link.report")</a>
 </div>
 <p class="reports-panel__why">@CityReportFormat.why(row, report.scoresReady)</p>
 @if(row.causes.nonEmpty) {
@@ -59,9 +64,8 @@
     </div>
   }
 </dl>
-<p class="reports-panel__links">
-  <a class="reports-link" href="@ReportLinks.report(row.slug)" data-city-event="OpenReport">@Messages("report.city.link.report")</a>
-  @if(row.helpExplore) {
+@if(row.helpExplore) {
+  <p class="reports-panel__links">
     <a class="reports-link" href="@ReportLinks.explore(row.regionId)" data-city-event="HelpExplore">@Messages("report.city.link.explore")</a>
-  }
-</p>
+  </p>
+}

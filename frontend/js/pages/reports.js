@@ -106,6 +106,43 @@ function focusableWhileScrolling(scroller) {
   if (scroller.firstElementChild) observer.observe(scroller.firstElementChild);
 }
 
+/** How much of the window's height the pinned map and panel may take; past it they scroll away with the page. */
+const MAX_STICKY_SHARE = 0.55;
+
+/**
+ * Sizes the panel to the tallest neighborhood's profile, so a preview never resizes it (and with it the band and the
+ * page under it), and the panel never needs to scroll. Each profile is drawn once into a hidden copy at the panel's
+ * width. Then pins the band only when that height leaves the table most of the window.
+ * @param {HTMLElement} shell - The page, which carries `is-stickable`.
+ * @param {HTMLElement} panel - The `#reports-panel` section.
+ * @param {import('../report/cityReportPanel.js').CityReportRow[]} rows - Every neighborhood.
+ * @param {Parameters<typeof renderPanel>[2]} data - What the page knows of the city.
+ */
+function fitPanel(shell, panel, rows, data) {
+  const probe = /** @type {HTMLElement} */ (panel.cloneNode(false));
+  probe.removeAttribute('id');
+  probe.removeAttribute('data-previewing');
+  probe.setAttribute('aria-hidden', 'true');
+  probe.inert = true;
+  Object.assign(probe.style, {
+    position: 'absolute', visibility: 'hidden', left: '-10000px', top: '0',
+    width: `${panel.getBoundingClientRect().width}px`, minHeight: '0',
+  });
+  panel.after(probe);
+  let tallest = 0;
+  for (const row of rows) {
+    renderPanel(probe, row, data);
+    // Its copy of the name's id would clash with the panel's.
+    probe.querySelector('[id]')?.removeAttribute('id');
+    tallest = Math.max(tallest, probe.getBoundingClientRect().height);
+  }
+  probe.remove();
+  panel.style.minHeight = `${Math.ceil(tallest)}px`;
+  const mapHeight = shell.querySelector('.reports-map')?.getBoundingClientRect().height ?? 0;
+  const bandHeight = Math.max(tallest, mapHeight);
+  shell.classList.toggle('is-stickable', bandHeight <= window.innerHeight * MAX_STICKY_SHARE);
+}
+
 /**
  * Presses one button of a segmented control.
  * @param {NodeListOf<HTMLButtonElement>} buttons - The control's buttons.
@@ -136,6 +173,24 @@ window.appManager.ready(() => {
   sidebar.classList.add('is-foldable');
   const scroller = document.getElementById('reports-table-scroll');
   if (scroller) focusableWhileScrolling(scroller);
+  const panel = document.getElementById('reports-panel');
+  const panelStatus = document.getElementById('reports-panel-status');
+  if (panel) {
+    // Again whenever the panel's width or the window's height changes, a frame later so a drag measures once.
+    let frame = 0;
+    let lastWidth = -1;
+    const refit = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        lastWidth = panel.getBoundingClientRect().width;
+        fitPanel(shell, panel, data.rows, data);
+      });
+    };
+    new ResizeObserver(() => {
+      if (panel.getBoundingClientRect().width !== lastWidth) refit();
+    }).observe(panel);
+    window.addEventListener('resize', refit);
+  }
   // The pinned map and panel's height, so a row's focused control scrolls clear of them.
   const top = shell.querySelector('.reports-top');
   if (top) {
@@ -171,22 +226,35 @@ window.appManager.ready(() => {
   document.getElementById('reports-filter-section').hidden = false;
   document.getElementById('reports-sort-label').hidden = false;
 
-  const panel = document.getElementById('reports-panel');
-  const panelStatus = document.getElementById('reports-panel-status');
+  /**
+   * Draws a neighborhood in the panel, marked as a preview when it isn't the selected one.
+   * @param {number} id - The neighborhood.
+   */
+  const showInPanel = (id) => {
+    if (!panel) return;
+    if (panel.dataset.regionId !== String(id)) {
+      renderPanel(panel, rowsById.get(id), data);
+      paint(panel);
+    }
+    panel.toggleAttribute('data-previewing', id !== state.selected);
+  };
+
   state.subscribe((current, change) => {
     switch (change.type) {
       case 'select': {
         // A selection of a hidden row resets the filter, so the buttons follow it too.
         press(filterButtons, (b) => b.dataset.filter === current.filter);
         const row = rowsById.get(current.selected);
-        if (panel) {
-          renderPanel(panel, row, data);
-          paint(panel);
-        }
+        showInPanel(current.selected);
         if (panelStatus) panelStatus.textContent = `${row.name}: ${row.text.why}`;
         log(`Select_Region=${current.selected}_From=${change.from}`);
         break;
       }
+      case 'hover':
+        // Only the map previews: down the table, every row the pointer crossed would redraw the panel. A preview
+        // neither announces nor logs; only a selection does.
+        if (change.from === 'Map') showInPanel(current.hovered ?? current.selected);
+        break;
       case 'lens':
         press(lensButtons, (b) => b.dataset.lens === current.lens);
         for (const element of shell.querySelectorAll('.reports-legend')) {
@@ -219,7 +287,7 @@ window.appManager.ready(() => {
   const container = document.getElementById('reports-map');
   util.fetchJson('/regions')
     .then((regions) => new CityReportMap(container, {
-      basemap: data.basemap, regions, rows: data.rows, scoresReady: data.scoresReady, state,
+      basemap: data.basemap, regions, rows: data.rows, state,
     }))
     .catch((error) => console.error('The city reports map could not load its neighborhoods', error));
 });

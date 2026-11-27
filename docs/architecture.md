@@ -567,13 +567,15 @@ does. A failed tally leaves the quality columns "still counting"; `SwrCache` log
 The header, table and the first neighborhood's profile are server-rendered; `frontend/js/report/` adds the rest. One
 `CityReportState` holds the selection, hover, lens, filter and sort, and the map (`CityReportMap`, MapLibre over the
 city's PMTiles with the `/regions` polygons, so no billable Google or Mapbox call), the table (`CityReportTable`) and
-the profile panel each draw from it. On a desktop screen at least 800px tall the map and panel stay pinned while
-the table scrolls under them, so a pick far down a long table is seen. Hovering a shape shows a small card for it,
-and a click selects it and pins
-the card with its links (`cityReportMapCard.js`). The table is the keyboard and screen-reader path to the
-neighborhoods: a row's
-name opens its report, and its "Show on map" button selects it (a click anywhere else in the row does too); on a phone
-its rows become labeled cards, and its header row stays as a row of visible sort buttons. The page sits in the same
+the profile panel each draw from it. Hovering a shape previews that neighborhood in the panel (a dashed border marks
+it, and leaving the map brings the selection back); a click selects it. Only the map previews, so moving down the
+table doesn't redraw the panel. The panel never scrolls inside: `pages/reports.js` draws every profile once, hidden,
+and holds the panel at the tallest one's height, so a preview never resizes it, and the map stretches to match. On a
+desktop screen at least 800px tall, the map and panel stay pinned while the table scrolls under them, so a pick far
+down a long table is seen, unless that height would take more than 55% of the window. The table is the keyboard and
+screen-reader path to the neighborhoods: a row's name opens its report, and its "Show on map" button selects it (a click
+anywhere else in the row does too); on a phone its rows become labeled cards, and its header row stays as a row of
+visible sort buttons. The page sits in the same
 left-sidebar shell as a neighborhood report (`components/tool-sidebar.css`): the sidebar's head names it ("City
 Report", the page's `<h1>`) and the city, and its body holds the lens and filter controls and the map's legend, folding
 behind the strip's button on a phone. A report's sidebar head reads "Neighborhood Report" and links back up. Beside the

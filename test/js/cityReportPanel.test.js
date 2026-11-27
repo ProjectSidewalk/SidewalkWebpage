@@ -57,6 +57,18 @@ describe('renderPanel', () => {
     expect(root.dataset.regionId).toBe('7');
   });
 
+  test('offers the report as a button under the name, before anything else is said about the neighborhood', () => {
+    const root = panel();
+    renderPanel(root, ROW, PAGE);
+    const open = root.querySelector('a.button[data-city-event="OpenReport"]');
+    expect(open.closest('.reports-panel__head')).not.toBeNull();
+    const name = root.querySelector('#reports-panel-name');
+    const why = root.querySelector('.reports-panel__why');
+    expect(name.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(open.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(root.querySelector('.reports-panel__links')).toBeNull();
+  });
+
   test('puts every fact and cause name on the page as text, never as markup', () => {
     const root = panel();
     const row = { ...ROW, text: { ...ROW.text, labelers: '<i>7</i>', latest: '<u>Oct</u> 2026' } };

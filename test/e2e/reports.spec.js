@@ -151,6 +151,8 @@ test.describe('/reports', () => {
       spacer.style.height = '3000px';
       document.getElementById('reports-page').append(spacer);
     });
+    // At 1440x900 the tallest profile leaves the table most of the window, so the band is pinned.
+    await expect(page.locator('#reports-shell')).toHaveClass(/is-stickable/);
     const band = page.locator('.reports-top');
     const navBottom = await page.locator('#header').evaluate((h) => h.getBoundingClientRect().bottom);
     // Mid-spacer, not the bottom: at the column's end a sticky box leaves with it.
@@ -184,65 +186,104 @@ test.describe('/reports', () => {
     await expect(button).toHaveAccessibleName(new RegExp(other.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
 
-  test('hovering a shape shows its card, and a click pins it with the link to its report', async ({page}) => {
-    const activities = logged(page);
-    const data = await openReports(page);
-    const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
-    const box = await canvas.boundingBox();
-    const tooltip = page.locator('.reports-map-tooltip .reports-map-card');
-    /** @param {{fx: number, fy: number}} at - A point as fractions of the canvas, which page scrolling can't stale. */
-    const pointOn = async ({fx, fy}) => {
-      await canvas.scrollIntoViewIfNeeded();
-      const b = await canvas.boundingBox();
-      return {x: b.x + b.width * fx, y: b.y + b.height * fy};
-    };
+  test('hovering a shape previews it in the panel, leaving the map brings the selection back, and a click selects it',
+    async ({page}) => {
+      const activities = logged(page);
+      const data = await openReports(page);
+      const panel = page.locator('#reports-panel');
+      const name = page.locator('#reports-panel-name');
+      const selectedName = await name.textContent();
+      const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
+      /** @param {{fx: number, fy: number}} at - A point as fractions of the canvas, which page scrolling can't stale. */
+      const pointOn = async ({fx, fy}) => {
+        await canvas.scrollIntoViewIfNeeded();
+        const b = await canvas.boundingBox();
+        return {x: b.x + b.width * fx, y: b.y + b.height * fy};
+      };
 
-    // Which shape sits where depends on the city, so sweep a grid until the pointer lands on one; the sweep also waits
-    // out the map's load, before which nothing answers a hover.
-    let point = null;
-    await expect.poll(async () => {
-      for (const fx of [0.5, 0.35, 0.65, 0.2, 0.8]) {
-        for (const fy of [0.5, 0.35, 0.65, 0.2, 0.8]) {
-          await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
-          if (await tooltip.isVisible()) {
-            point = {fx, fy};
-            return true;
+      // Which shape sits where depends on the city, so sweep a grid until the pointer previews one other than the
+      // selection; the sweep also waits out the map's load, before which nothing answers a hover.
+      let point = null;
+      await expect.poll(async () => {
+        for (const fx of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+          for (const fy of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+            const at = await pointOn({fx, fy});
+            await page.mouse.move(at.x, at.y);
+            if (await panel.getAttribute('data-previewing') !== null) {
+              point = {fx, fy};
+              return true;
+            }
           }
         }
-      }
-      return false;
-    }, {timeout: 20_000}).toBe(true);
+        return false;
+      }, {timeout: 20_000}).toBe(true);
 
-    const id = Number(await tooltip.getAttribute('data-region-id'));
-    const row = data.rows.find((r) => r.id === id);
-    await expect(tooltip.locator('.reports-map-card__name')).toHaveText(row.name);
-    await expect(tooltip.locator('a')).toHaveCount(0);
+      const id = Number(await panel.getAttribute('data-region-id'));
+      const row = data.rows.find((r) => r.id === id);
+      await expect(name).toHaveText(row.name);
+      await expect(page.locator('.maplibregl-popup')).toHaveCount(0);
 
-    let at = await pointOn(point);
-    await page.mouse.click(at.x, at.y);
-    const pinned = page.locator('.reports-map-popup .reports-map-card');
-    await expect(pinned).toHaveAttribute('data-region-id', String(id));
-    await expect(tooltip).toHaveCount(0);
-    await expect(page.locator('#reports-panel-name')).toHaveText(row.name);
-    await page.keyboard.press('Escape');
-    await expect(pinned).toHaveCount(0);
-    at = await pointOn(point);
-    await page.mouse.click(at.x, at.y);
-    await expect(pinned).toHaveCount(1);
+      // Off the map, the panel goes back to the selection.
+      const box = await page.locator('#reports-table').boundingBox();
+      await page.mouse.move(box.x + 4, box.y + 4);
+      await expect(name).toHaveText(selectedName);
+      await expect(panel).not.toHaveAttribute('data-previewing');
 
-    // Picking another neighborhood in the table takes the pinned card away, since the panel now shows that one.
-    const other = data.rows.find((r) => r.id !== id);
-    if (other) {
-      await page.locator(`#reports-table tr[data-region-id="${other.id}"] td[data-column="score"]`).click();
-      await expect(pinned).toHaveCount(0);
-      at = await pointOn(point);
+      // A click selects it, so it stays once the pointer leaves.
+      let at = await pointOn(point);
       await page.mouse.click(at.x, at.y);
-    }
+      await expect(name).toHaveText(row.name);
+      await expect(panel).not.toHaveAttribute('data-previewing');
+      at = await pointOn({fx: 0.999, fy: 0.999});
+      await page.mouse.move(at.x + 40, at.y + 40);
+      await expect(name).toHaveText(row.name);
+      await expect(page.locator(`#reports-table tr[data-region-id="${id}"] .reports-table__select`))
+        .toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('.maplibregl-popup')).toHaveCount(0);
+      await expect.poll(() => activities).toContain(`Report_City_Select_Region=${id}_From=Map`);
+      expect(activities.filter((a) => /Hover/i.test(a))).toEqual([]);
 
-    await pinned.locator('a[data-city-event="OpenReport"]').click();
-    await page.waitForURL((url) => url.pathname === new URL(row.report, 'http://x').pathname, {timeout: 90_000});
-    await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${id}`);
+      // The panel's button, above everything else said about it, opens its report.
+      await panel.locator('a.button[data-city-event="OpenReport"]').click();
+      await page.waitForURL((url) => url.pathname === new URL(row.report, 'http://x').pathname, {timeout: 90_000});
+      await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${id}`);
+    });
+
+  test('hovering a table row leaves the panel on the selection', async ({page}) => {
+    const data = await openReports(page);
+    const other = data.rows.find((r) => r.id !== data.selected);
+    test.skip(!other, 'the city has one neighborhood');
+    const selectedName = await page.locator('#reports-panel-name').textContent();
+    await page.locator(`#reports-table tr[data-region-id="${other.id}"] td[data-column="score"]`).hover();
+    await expect(page.locator(`#reports-table tr[data-region-id="${other.id}"]`)).toHaveClass(/is-hovered/);
+    await expect(page.locator('#reports-panel-name')).toHaveText(selectedName);
+    await expect(page.locator('#reports-panel')).not.toHaveAttribute('data-previewing');
   });
+
+  test('the panel fits every neighborhood unscrolled, at one height, with its report button at the top',
+    async ({page}) => {
+      await openReports(page);
+      const sizes = await page.evaluate(() => {
+        const panel = document.getElementById('reports-panel');
+        return [...document.querySelectorAll('#reports-table .reports-table__select')].map((button) => {
+          /** @type {HTMLElement} */ (button).click();
+          const open = panel.querySelector('a.button[data-city-event="OpenReport"]');
+          const why = panel.querySelector('.reports-panel__why');
+          return {
+            id: panel.dataset.regionId,
+            overflow: panel.scrollHeight - panel.clientHeight,
+            height: Math.round(panel.getBoundingClientRect().height),
+            buttonFirst: Boolean(open && why && (open.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING)),
+          };
+        });
+      });
+      expect(sizes.length).toBeGreaterThan(0);
+      for (const size of sizes) {
+        expect(size.overflow, `region ${size.id} scrolls inside the panel`).toBeLessThanOrEqual(0);
+        expect(size.buttonFirst, `region ${size.id}'s report button is not above its sentence`).toBe(true);
+      }
+      expect(new Set(sizes.map((s) => s.height)).size, 'the panel changes height between neighborhoods').toBe(1);
+    });
 
   test('a lens swaps the legend and the table\'s marked column', async ({page}) => {
     const activities = logged(page);

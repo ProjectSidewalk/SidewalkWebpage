@@ -38,9 +38,10 @@ describe('CityReportState', () => {
     state.select(2, 'Map');
     expect(state.selected).toBe(2);
     expect(heard).toHaveBeenLastCalledWith(state, { type: 'select', from: 'Map' });
-    state.hover(3);
-    expect(heard).toHaveBeenLastCalledWith(state, { type: 'hover' });
-    state.hover(null);
+    state.hover(3, 'Map');
+    expect(heard).toHaveBeenLastCalledWith(state, { type: 'hover', from: 'Map' });
+    state.hover(null, 'Table');
+    expect(heard).toHaveBeenLastCalledWith(state, { type: 'hover', from: 'Table' });
     expect(state.hovered).toBeNull();
   });
 
@@ -48,7 +49,7 @@ describe('CityReportState', () => {
     state.select(1, 'Table');
     state.setLens('score');
     state.setFilter('all');
-    state.hover(null);
+    state.hover(null, 'Map');
     expect(heard).not.toHaveBeenCalled();
   });
 

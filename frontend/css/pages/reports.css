@@ -131,7 +131,7 @@
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: var(--space-lg);
-  align-items: start;
+  align-items: stretch;
 }
 
 /* var(--breakpoint-md): beside the sidebar, a narrower page leaves the panel too slim, so it goes under the map. */
@@ -139,10 +139,21 @@
   .reports-top {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .reports-map {
+    height: 440px;
+  }
+}
+
+/* The map fills its column, which the grid stretches to the panel's height beside it. */
+.reports-map-column {
+  display: flex;
+  flex-direction: column;
 }
 
 .reports-map {
-  height: 440px;
+  flex: 1 1 auto;
+  min-height: 360px;
   overflow: hidden;
   background: var(--color-neutral-100);
   border-radius: var(--border-radius-lg);
@@ -155,9 +166,10 @@
 }
 
 /* var(--breakpoint-md), on a screen tall enough to leave the table room: the map and profile stay in view while the
-   table scrolls under them, so a pick far down a long table is seen. */
+   table scrolls under them, so a pick far down a long table is seen. reports.js clears .is-stickable when the tallest
+   profile would make the band cover too much of the screen. */
 @media (width > 992px) and (height >= 800px) {
-  .reports-top {
+  .reports-shell.is-stickable .reports-top {
     position: sticky;
     top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
     z-index: var(--z-index-sticky);
@@ -166,18 +178,8 @@
     border-bottom: 1px solid var(--color-neutral-200);
   }
 
-  .reports-map {
-    height: min(440px, 40vh);
-  }
-
-  /* A long profile scrolls inside rather than making the band taller than the map. */
-  .reports-panel {
-    max-height: min(440px, 40vh);
-    overflow-y: auto;
-  }
-
   /* A focused link or button in a row scrolls clear of the band (WCAG 2.4.11); reports.js measures it. */
-  .reports-table tbody :is(a, button) {
+  .reports-shell.is-stickable .reports-table tbody :is(a, button) {
     scroll-margin-top:
       calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--reports-top-height, 0px) + var(--space-sm));
   }
@@ -237,11 +239,29 @@
   border-radius: var(--border-radius-lg);
 }
 
+/* Showing the neighborhood under the map's pointer rather than the selected one; leaving the map brings that back. */
+.reports-panel[data-previewing] {
+  border-style: dashed;
+  border-color: var(--color-neutral-500);
+}
+
 .reports-panel__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs) var(--space-sm);
+  align-items: start;
+}
+
+.reports-panel__score-line {
   display: flex;
-  flex-wrap: wrap;
+  grid-column: 1 / -1;
   gap: var(--space-xs);
   align-items: center;
+}
+
+/* Beside the name, at the top: opening the report is what most readers came to the panel for. */
+.reports-panel__open {
+  white-space: nowrap;
 }
 
 .reports-panel__score {
@@ -256,7 +276,6 @@
 
 /* The primary font rather than the accent one: neighborhood names can hold digits. */
 .reports-panel__name {
-  flex: 1 1 100%;
   margin: 0;
   font: var(--text-title-bold);
 }
@@ -284,19 +303,17 @@
   font: var(--text-small-regular);
 }
 
+/* Two columns of label over value, so seven facts take four lines and the panel fits beside the map unscrolled. */
 .reports-panel__facts {
   display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  gap: var(--space-xxs) var(--space-sm);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-md);
   margin: 0;
   font: var(--text-small-regular);
 }
 
-.reports-panel__fact {
-  display: contents;
-}
-
 .reports-panel__fact dt {
+  font: var(--text-caption-regular);
   color: var(--color-neutral-800);
 }
 
@@ -526,74 +543,6 @@
   display: flex;
   align-items: center;
   min-height: 24px;
-}
-
-/* ---- Map cards: a hover card, and the one a click pins with the links ---------------------------------------- */
-
-.reports-map-tooltip .maplibregl-popup-content,
-.reports-map-popup .maplibregl-popup-content {
-  padding: var(--space-sm) var(--space-md);
-  font: var(--text-small-regular);
-  color: var(--color-neutral-900);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-}
-
-/* The hover card follows the pointer, so it must never catch the click meant for the shape under it. */
-.reports-map-tooltip,
-.reports-map-tooltip .maplibregl-popup-content {
-  pointer-events: none;
-}
-
-/* Room for the close button beside the name. */
-.reports-map-popup .reports-map-card {
-  padding-right: var(--space-md);
-}
-
-/* A 24px target (WCAG 2.5.8). */
-.reports-map-popup .maplibregl-popup-close-button {
-  width: 24px;
-  height: 24px;
-  font: var(--text-body-bold);
-}
-
-.reports-map-card p {
-  margin: 0;
-}
-
-.reports-map-card p + p {
-  margin-top: var(--space-xxs);
-}
-
-/* The primary font rather than the accent one: neighborhood names can hold digits. */
-.reports-map-card__name {
-  font: var(--text-small-bold);
-}
-
-.reports-map-card__score {
-  font: var(--text-title-bold);
-}
-
-.reports-map-card__score--none {
-  font: var(--text-small-bold);
-  color: var(--color-neutral-800);
-}
-
-.reports-map-card__why,
-.reports-map-card__explored {
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-800);
-}
-
-.reports-map-card__hint {
-  font: var(--text-tiny-regular);
-  color: var(--color-neutral-700);
-}
-
-.reports-map-card__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-md);
 }
 
 /* Only a phone shows it, above the sort buttons the header row becomes there. */

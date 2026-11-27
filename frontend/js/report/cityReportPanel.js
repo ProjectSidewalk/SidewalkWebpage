@@ -53,16 +53,18 @@ function fact(key, value, qualityReady) {
  * The score, or the words for none where the table says them too.
  * @param {CityReportRow} row
  * @param {boolean} scoresReady - Whether the city's scores are in; until then the sentence says why there is none.
- * @returns {string} Markup.
+ * @returns {string} Markup; empty when the panel says nothing about a score.
  */
-function headOf(row, scoresReady) {
+function scoreOf(row, scoresReady) {
   if (!row.scored) {
     return scoresReady && row.hasStreets
-      ? '<p class="reports-panel__score reports-panel__score--none" data-i18n="report:city.not-scored"></p>'
+      ? `<div class="reports-panel__score-line"><p class="reports-panel__score reports-panel__score--none"
+        data-i18n="report:city.not-scored"></p></div>`
       : '';
   }
-  return `<span class="reports-swatch reports-swatch--large" data-score="${Number(row.score)}"
-    aria-hidden="true"></span><p class="reports-panel__score">${util.escapeHTML(row.text.score)}</p>`;
+  const score = util.escapeHTML(row.text.score);
+  return `<div class="reports-panel__score-line"><span class="reports-swatch reports-swatch--large"
+    data-score="${Number(row.score)}" aria-hidden="true"></span><p class="reports-panel__score">${score}</p></div>`;
 }
 
 /**
@@ -84,16 +86,14 @@ function causesOf(row, typeNames) {
 }
 
 /**
- * The links to its report and, when it asks for help, to Explore. The map's pinned card shows them too.
+ * The way to help explore it, when it asks for help.
  * @param {CityReportRow} row
- * @returns {string} Markup.
+ * @returns {string} Markup; empty when it doesn't.
  */
-export function linksOf(row) {
-  const report = `<a class="reports-link" href="${util.escapeHTML(row.report)}" data-city-event="OpenReport"
-    data-i18n="report:city.open-report"></a>`;
-  if (!row.explore) return report;
-  return `${report}<a class="reports-link" href="${util.escapeHTML(row.explore)}" data-city-event="HelpExplore"
-    data-i18n="report:city.help-explore"></a>`;
+function exploreOf(row) {
+  if (!row.explore) return '';
+  return `<p class="reports-panel__links"><a class="reports-link" href="${util.escapeHTML(row.explore)}"
+    data-city-event="HelpExplore" data-i18n="report:city.help-explore"></a></p>`;
 }
 
 /**
@@ -118,12 +118,14 @@ export function renderPanel(panel, row, page) {
   panel.dataset.regionId = String(row.id);
   panel.innerHTML = `
     <div class="reports-panel__head">
-      ${headOf(row, page.scoresReady)}
+      ${scoreOf(row, page.scoresReady)}
       <h2 class="reports-panel__name" id="reports-panel-name">${util.escapeHTML(row.name)}</h2>
+      <a class="button button--primary button--small reports-panel__open" href="${util.escapeHTML(row.report)}"
+        data-city-event="OpenReport" data-i18n="report:city.open-report"></a>
     </div>
     <p class="reports-panel__why">${util.escapeHTML(text.why)}</p>
     ${causesOf(row, page.typeNames)}
     <dl class="reports-panel__facts">${facts.join('')}</dl>
-    <p class="reports-panel__links">${linksOf(row)}</p>`;
+    ${exploreOf(row)}`;
   localizeSubtree(panel);
 }

@@ -13,7 +13,8 @@
 /**
  * @typedef {object} CityReportChange
  * @property {CityReportChangeType} type - What changed.
- * @property {string} [from] - For a selection, where it was made: `Map`, `Table` or `Filter`.
+ * @property {string} [from] - For a selection, where it was made: `Map`, `Table` or `Filter`; for a hover, `Map` or
+ *   `Table`, since the page previews only a map hover in its panel.
  */
 
 const LENSES = new Set(['score', 'explored', 'problem']);
@@ -99,11 +100,14 @@ export class CityReportState {
     this.#notify({ type: 'select', from });
   }
 
-  /** @param {?number} id - The neighborhood now under the pointer, or null for none. */
-  hover(id) {
+  /**
+   * @param {?number} id - The neighborhood now under the pointer, or null for none.
+   * @param {string} from - Where the pointer is: `Map` or `Table`.
+   */
+  hover(id, from) {
     if (id === this.#hovered) return;
     this.#hovered = id;
-    this.#notify({ type: 'hover' });
+    this.#notify({ type: 'hover', from });
   }
 
   /** @param {CityReportLens} lens */
