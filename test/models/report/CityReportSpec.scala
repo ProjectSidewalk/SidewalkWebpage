@@ -332,8 +332,9 @@ class CityReportSpec extends AnyFunSuite with Matchers {
     val report = build(Seq(1), Seq(completion(1, 300, total = 1000)), Some(AccessScores(Seq.empty, Seq.empty)))
     row(report, 1).metersToFloor shouldBe (AccessScoreSpotlight.MinRegionCompletion * 1000 - 300 +- 1e-9)
 
-    // 79.4% of 3 km leaves 18 m: a tenth of a kilometer, not 0.0.
-    val close = build(Seq(2), Seq(completion(2, 2382, total = 3000)), Some(AccessScores(Seq.empty, Seq.empty)))
+    // 79.4% of 3 km leaves 18 m: a tenth of a kilometer, not 0.0. Its street is scored, so only the floor withholds it.
+    val close =
+      build(Seq(2), Seq(completion(2, 2382, total = 3000)), Some(AccessScores(Seq(street(3, 2)), Seq.empty)))
     row(close, 2).score.score shouldBe None
     CityReportFormat.toGo(row(close, 2))(using summon[RequestHeader], messagesIn("metric")) shouldBe
       Some("0.1 km to go")

@@ -33,9 +33,13 @@ function renderTable() {
   const body = ROWS.map((r) => `
     <tr data-region-id="${r.id}">
       <th scope="row" data-column="name">
-        <button type="button" class="reports-table__select" aria-pressed="false">${r.name}</button>
+        <a class="reports-table__name" href="/report/neighborhood/${r.id}">${r.name}</a>
       </th>
-      ${COLUMNS.slice(1).map((c) => `<td data-column="${c}"></td>`).join('')}
+      ${COLUMNS.slice(1, -1).map((c) => `<td data-column="${c}"></td>`).join('')}
+      <td data-column="links">
+        <a class="reports-link" href="/report/neighborhood/${r.id}">Open report</a>
+        <button type="button" class="reports-link reports-table__select" aria-pressed="false">Show on map</button>
+      </td>
     </tr>`).join('');
   document.body.innerHTML = `<table id="reports-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -64,7 +68,6 @@ describe('CityReportTable', () => {
   test('keeps the server\'s order until a header is clicked, and marks the starting selection', () => {
     expect(shownIds()).toEqual([11, 12, 13, 14]);
     expect(rowOf(11).classList.contains('is-selected')).toBe(true);
-    expect(rowOf(11).querySelector('button').getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelector('th[aria-sort]')).toBeNull();
   });
 
@@ -108,20 +111,32 @@ describe('CityReportTable', () => {
     expect(shownIds()).toEqual([11, 12, 13, 14]);
   });
 
-  test('selects from a row\'s name, and follows a selection made on the map', () => {
+  test('selects from a click on a row, and follows a selection made on the map', () => {
     const heard = vi.fn();
     state.subscribe(heard);
-    rowOf(13).querySelector('button').click();
+    rowOf(13).querySelector('td[data-column="score"]').click();
     expect(state.selected).toBe(13);
     expect(heard).toHaveBeenLastCalledWith(state, { type: 'select', from: 'Table' });
     expect(rowOf(13).classList.contains('is-selected')).toBe(true);
     expect(rowOf(11).classList.contains('is-selected')).toBe(false);
-    expect(rowOf(11).querySelector('button').getAttribute('aria-pressed')).toBe('false');
 
     state.select(12, 'Map');
     expect(rowOf(12).classList.contains('is-selected')).toBe(true);
-    expect(rowOf(12).querySelector('button').getAttribute('aria-pressed')).toBe('true');
     expect(rowOf(13).classList.contains('is-selected')).toBe(false);
+  });
+
+  test('selects from a row\'s "Show on map" button, the keyboard\'s way in, and presses it', () => {
+    rowOf(13).querySelector('.reports-table__select').click();
+    expect(state.selected).toBe(13);
+    expect(rowOf(13).querySelector('.reports-table__select').getAttribute('aria-pressed')).toBe('true');
+    expect(rowOf(11).querySelector('.reports-table__select').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  test('leaves the selection alone when a row\'s name link is clicked, since that opens the report', () => {
+    const link = rowOf(13).querySelector('a');
+    link.addEventListener('click', (e) => e.preventDefault());
+    link.click();
+    expect(state.selected).toBe(11);
   });
 
   test('tints the row under the pointer, from its own row or from the map', () => {

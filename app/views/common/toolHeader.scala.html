@@ -2,21 +2,26 @@
  * A tool's lockup (#5958): its logo beside its name, heading that tool's left sidebar. The only place a mark is
  * paired with a name, so the four stay one family; see docs/style-guide.md, "Tool logos".
  *
- * Usage: `@common.toolHeader("gallery")`, or `@common.toolHeader("reports", asHeading = false)`.
+ * Usage: `@common.toolHeader("gallery")`, `@common.toolHeader("reports", asHeading = false)`, or
+ * `@common.toolHeader("reports", name = Some(Messages("report.title.city")))`.
  *
  * @param tool      "accessscore", "gallery", "labelmap" or "reports", as `views.ToolLockup` knows them. Anything
  *                  else throws, so a typo fails the render rather than shipping a header with no mark.
  * @param asHeading Whether the name is the page's `<h1>`. False where the page has one of its own, and in a map
  *                  panel, which can be collapsed: the page then carries its `<h1>` outside the panel.
+ * @param name      Shown in place of the tool's name (Reports: "City Report"). No digits or place names: the face
+ *                  is Raleway, which never renders digits.
  *@
-@(tool: String, asHeading: Boolean = true)(using messages: Messages, assets: AssetsFinder)
+@(tool: String, asHeading: Boolean = true, name: Option[String] = None)(using messages: Messages, assets: AssetsFinder)
 
 <div class="ps-tool-header">
   @* Decorative: the name beside it already says which tool this is. *@
   <img class="ps-tool-header__mark" src='@assets.path(s"images/logos/tools/${views.ToolLockup.mark(tool)}.svg")' alt="" width="40" height="40">
-  @if(asHeading) {
-    <h1 class="ps-tool-header__name">@views.ToolLockup.name(tool)</h1>
-  } else {
-    <p class="ps-tool-header__name">@views.ToolLockup.name(tool)</p>
+  @defining(name.getOrElse(views.ToolLockup.name(tool))) { label =>
+    @if(asHeading) {
+      <h1 class="ps-tool-header__name">@label</h1>
+    } else {
+      <p class="ps-tool-header__name">@label</p>
+    }
   }
 </div>

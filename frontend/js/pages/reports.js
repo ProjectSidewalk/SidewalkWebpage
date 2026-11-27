@@ -12,7 +12,11 @@ import { CityReportState } from '../report/CityReportState.js';
 import { CityReportTable } from '../report/CityReportTable.js';
 import { CityReportMap } from '../report/CityReportMap.js';
 import { renderPanel } from '../report/cityReportPanel.js';
+import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
+import '../../css/components/page-shell.css';
+import '../../css/components/filter-sidebar.css';
 import '../../css/components/tool-header.css';
+import '../../css/components/tool-sidebar.css';
 import '../../css/pages/reports.css';
 
 /** How each lens and filter is named in the log. */
@@ -96,7 +100,10 @@ function focusableWhileScrolling(scroller) {
     }
   };
   update();
-  new ResizeObserver(update).observe(scroller);
+  // The table too: it can outgrow a scroller whose own box doesn't change (late fonts, a sort arrow).
+  const observer = new ResizeObserver(update);
+  observer.observe(scroller);
+  if (scroller.firstElementChild) observer.observe(scroller.firstElementChild);
 }
 
 /**
@@ -109,24 +116,36 @@ function press(buttons, pressed) {
 }
 
 window.appManager.ready(() => {
-  const page = document.getElementById('reports-page');
+  const shell = document.getElementById('reports-shell');
   const data = JSON.parse(document.getElementById('reports-data').textContent);
   const rowsById = new Map(data.rows.map((row) => [row.id, row]));
   const log = (event) => window.logWebpageActivity(`Report_City_${event}`);
 
-  paint(page);
+  paint(shell);
   paintLegends();
-  localizeTimes(page);
+  localizeTimes(shell);
+
+  const sidebar = document.getElementById('reports-sidebar');
+  const toggle = /** @type {HTMLButtonElement} */ (document.getElementById('reports-sidebar-toggle'));
+  wireSidebarDisclosure(toggle, sidebar, {
+    controlled: document.getElementById('reports-sidebar-body'),
+    onToggle: (open) => log(`SidebarToggle_Open=${open}`),
+  });
+  toggle.hidden = false;
+  // Only now may the body fold on a phone: without the button there'd be no way to open it.
+  sidebar.classList.add('is-foldable');
   const scroller = document.getElementById('reports-table-scroll');
   if (scroller) focusableWhileScrolling(scroller);
 
   // Scored rows lowest first, unscored after: the server's order is the Score sort, ascending.
-  const sort = data.scoresReady ? { column: 'score', dir: /** @type {'asc'} */ ('asc') } : null;
+  // With no scored row the server orders by Explored, so the page claims no sort.
+  const scoreOrder = data.scoresReady && data.rows.some((row) => row.scored);
+  const sort = scoreOrder ? { column: 'score', dir: /** @type {'asc'} */ ('asc') } : null;
   const state = new CityReportState(data.rows, { selected: data.selected, sort });
   new CityReportTable(/** @type {HTMLTableElement} */ (document.getElementById('reports-table')), data.rows, state);
 
-  const lensButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (page.querySelectorAll('button[data-lens]'));
-  const filterButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (page.querySelectorAll('button[data-filter]'));
+  const lensButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (shell.querySelectorAll('button[data-lens]'));
+  const filterButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (shell.querySelectorAll('button[data-filter]'));
   // The state rejects anything but its own lenses and filters, so the server's markup can't set a third.
   for (const button of lensButtons) {
     button.addEventListener('click', () => state.setLens(/** @type {any} */ (button.dataset.lens)));
@@ -134,7 +153,8 @@ window.appManager.ready(() => {
   for (const button of filterButtons) {
     button.addEventListener('click', () => state.setFilter(/** @type {any} */ (button.dataset.filter)));
   }
-  document.getElementById('reports-controls').hidden = false;
+  document.getElementById('reports-lens-section').hidden = false;
+  document.getElementById('reports-filter-section').hidden = false;
   document.getElementById('reports-sort-label').hidden = false;
 
   const panel = document.getElementById('reports-panel');
@@ -155,7 +175,7 @@ window.appManager.ready(() => {
       }
       case 'lens':
         press(lensButtons, (b) => b.dataset.lens === current.lens);
-        for (const element of page.querySelectorAll('.reports-legend')) {
+        for (const element of shell.querySelectorAll('.reports-legend')) {
           const legend = /** @type {HTMLElement} */ (element);
           legend.hidden = legend.dataset.lens !== current.lens;
         }
@@ -174,7 +194,7 @@ window.appManager.ready(() => {
   });
 
   // The table and the panel carry the same links; either way a click names its neighborhood.
-  page.addEventListener('click', (e) => {
+  shell.addEventListener('click', (e) => {
     const link = /** @type {?HTMLElement} */ (/** @type {Element} */ (e.target).closest('[data-city-event]'));
     if (!link) return;
     const region = /** @type {?HTMLElement} */ (link.closest('[data-region-id]'));

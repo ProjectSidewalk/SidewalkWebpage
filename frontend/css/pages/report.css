@@ -16,21 +16,6 @@
   color: var(--color-neutral-900);
 }
 
-/* Doubled up for the same reason as .page-content.report-page: the shell's .page-nav rule may load after this file. */
-.page-nav.report-sidebar__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  padding: var(--space-lg) var(--space-md);
-}
-
-/* Pulled up out of the column's 24px top padding to the height every tool's header starts at. The column's gap
-   already spaces it from the first control. */
-.report-sidebar__body > .ps-tool-header {
-  margin-top: calc(var(--tool-header-top) - var(--space-lg));
-  margin-bottom: 0;
-}
-
 /* A long contents list scrolls in its own column, so an anchor needs clearing from the navbar only on the page side. */
 .report-toc {
   padding: var(--space-lg) var(--space-md);
@@ -80,19 +65,6 @@
   .page-content.report-page {
     padding-inline: var(--space-md);
   }
-
-  /* The folded-out body is a plain block here, with no column gap to space the header from the first control. */
-  .report-sidebar__body > .ps-tool-header {
-    margin-top: 0;
-    margin-bottom: var(--space-md);
-  }
-}
-
-/* The strip's disclosure button belongs to narrow screens only, whatever report.js reveals. */
-@media (width > 768px) {
-  .report-sidebar .page-sidebar-toggle {
-    display: none;
-  }
 }
 
 .report-page a {
@@ -100,12 +72,6 @@
 }
 
 /* ---- Title block ---------------------------------------------------------------------------------------------- */
-
-/* Back to the city's list of neighborhoods (#6041). */
-.report-breadcrumb {
-  margin: 0 0 var(--space-xs);
-  font: var(--text-small-regular);
-}
 
 .report-eyebrow {
   margin: 0;

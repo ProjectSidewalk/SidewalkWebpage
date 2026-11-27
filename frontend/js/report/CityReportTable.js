@@ -86,7 +86,7 @@ export class CityReportTable {
     this.#render(null);
   }
 
-  /** Sort buttons, name buttons and row hovers, all delegated from the table. */
+  /** Sort buttons, row clicks and row hovers, all delegated from the table. */
   #bindEvents() {
     this.#table.addEventListener('click', (e) => {
       const target = /** @type {Element} */ (e.target);
@@ -95,10 +95,10 @@ export class CityReportTable {
         this.#state.setSort(sort.dataset.sort);
         return;
       }
-      if (target.closest('.reports-table__select')) {
-        const id = this.#rowId(target);
-        if (id !== null) this.#state.select(id, 'Table');
-      }
+      // A click on a row selects it, except on its links, which leave the page.
+      if (target.closest('a, button:not(.reports-table__select)')) return;
+      const id = this.#rowId(target);
+      if (id !== null) this.#state.select(id, 'Table');
     });
     this.#table.tBodies[0].addEventListener('mouseover', (e) => {
       const id = this.#rowId(/** @type {Element} */ (e.target));
@@ -158,7 +158,7 @@ export class CityReportTable {
     for (const [id, tr] of this.#rowElements) tr.hidden = !this.#state.inFilter(id);
   }
 
-  /** Tints the selected row and presses its name's button. */
+  /** Tints the selected row and presses its "Show on map" button. */
   #markSelection() {
     for (const [id, tr] of this.#rowElements) {
       const selected = id === this.#state.selected;

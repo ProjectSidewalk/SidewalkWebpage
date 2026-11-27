@@ -50,13 +50,16 @@ function fact(key, value, qualityReady) {
 }
 
 /**
- * The score, or the words for none.
+ * The score, or the words for none where the table says them too.
  * @param {CityReportRow} row
+ * @param {boolean} scoresReady - Whether the city's scores are in; until then the sentence says why there is none.
  * @returns {string} Markup.
  */
-function headOf(row) {
+function headOf(row, scoresReady) {
   if (!row.scored) {
-    return '<p class="reports-panel__score reports-panel__score--none" data-i18n="report:city.not-scored"></p>';
+    return scoresReady && row.hasStreets
+      ? '<p class="reports-panel__score reports-panel__score--none" data-i18n="report:city.not-scored"></p>'
+      : '';
   }
   return `<span class="reports-swatch reports-swatch--large" data-score="${Number(row.score)}"
     aria-hidden="true"></span><p class="reports-panel__score">${util.escapeHTML(row.text.score)}</p>`;
@@ -97,7 +100,8 @@ function linksOf(row) {
  * Redraws the panel for a neighborhood.
  * @param {HTMLElement} panel - The `#reports-panel` section.
  * @param {CityReportRow} row - The neighborhood.
- * @param {{qualityReady: boolean, typeNames: Record<string, string>}} page - What the page knows of the city.
+ * @param {{scoresReady: boolean, qualityReady: boolean, typeNames: Record<string, string>}} page - What the page knows
+ *   of the city.
  */
 export function renderPanel(panel, row, page) {
   const { text } = row;
@@ -115,7 +119,7 @@ export function renderPanel(panel, row, page) {
   panel.dataset.regionId = String(row.id);
   panel.innerHTML = `
     <div class="reports-panel__head">
-      ${headOf(row)}
+      ${headOf(row, page.scoresReady)}
       <h2 class="reports-panel__name" id="reports-panel-name">${util.escapeHTML(row.name)}</h2>
     </div>
     <p class="reports-panel__why">${util.escapeHTML(text.why)}</p>

@@ -22,7 +22,10 @@
     <span class="reports-swatch reports-swatch--large" data-score="@score" aria-hidden="true"></span>
     <p class="reports-panel__score">@ReportFormat.score(score)</p>
   }.getOrElse {
-    <p class="reports-panel__score reports-panel__score--none">@Messages("report.score.none")</p>
+    @* As the table: while scores compute, or with no streets, the sentence below says why instead. *@
+    @if(report.scoresReady && row.hasStreets) {
+      <p class="reports-panel__score reports-panel__score--none">@Messages("report.score.none")</p>
+    }
   }
   <h2 class="reports-panel__name" id="reports-panel-name">@row.name</h2>
 </div>

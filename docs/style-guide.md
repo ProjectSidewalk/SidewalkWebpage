@@ -252,8 +252,12 @@ Sidewalk logo's four colors and its wheel (#5958). They live in `public/images/l
 - **Show one through `@common.toolHeader("<tool>")`**, which pairs the mark with the tool's name as the header of
   that tool's left sidebar. Don't assemble the pair by hand: the component is what keeps the size, face
   (`--text-tool-name`, Raleway ExtraBold) and spacing the same on all four pages.
-- **The name is also the page's `<h1>`**, except on a report, which has its own. In Gallery the lockup itself is the
-  `<h1>` (its review-list mode shows no sidebar, so neither). A map panel can be collapsed, which hides it from
+- **The Reports lockup names the kind of report**, not the tool: "City Report" on `/reports`, "Neighborhood Report"
+  on a neighborhood's report (the `name` parameter). The place goes on the line below in the primary font, never in
+  the lockup, since a region name can hold digits and Raleway doesn't render them.
+- **The name is also the page's `<h1>`**, except on a neighborhood report, which has its own (the neighborhood). In
+  Gallery and on `/reports` the lockup itself is the `<h1>`, kept outside the part of the sidebar that folds on a
+  phone so the page's heading never disappears (Gallery's review-list mode shows no sidebar, so neither). A map panel can be collapsed, which hides it from
   assistive technology, so Label Map and AccessScore pass `asHeading = false` and state the name in a visually hidden
   `<h1>` ahead of the map (`views.ToolLockup.name`).
 - **Sidebar section headings take their level from the page.** `common.filterSidebar` and

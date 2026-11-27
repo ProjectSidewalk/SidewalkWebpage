@@ -102,7 +102,7 @@
             }
             @* On phones too: the reports are responsive and build no pano (#6041). Named by the page's own key, so the
                menu and the page's header can't differ. *@
-            <li><a id="navbar-reports-btn" href="@routes.ReportController.city"@if(curPath == "/reports"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("file-text")@Messages("report.tool.name")<span class="navbar-badge">@Messages("report.beta.badge")</span></a></li>
+            <li><a id="navbar-reports-btn" href="@routes.ReportController.city"@if(curPath == "/reports"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("file-text")@Messages("report.tool.name") <span class="navbar-badge">@Messages("report.beta.badge")</span></a></li>
             <li class="navbar-menu-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>

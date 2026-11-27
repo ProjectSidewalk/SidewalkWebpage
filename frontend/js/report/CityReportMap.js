@@ -22,6 +22,7 @@ maplibregl.setWorkerUrl(maplibreWorkerUrl);
 const SOURCE = 'reports-regions';
 const FILL_LAYER = 'reports-regions-fill';
 const OUTLINE_LAYER = 'reports-regions-outline';
+const HIGHLIGHT_LAYER = 'reports-regions-highlight';
 const NAME_LAYER = 'reports-regions-names';
 // A faded neighborhood stays visible, so the reader keeps their bearings, and can still be picked.
 const FADED_OPACITY = 0.15;
@@ -198,9 +199,20 @@ export class CityReportMap {
       type: 'line',
       source: SOURCE,
       paint: {
-        'line-color': ['case', ['any', selected, hovered], asphalt, white],
-        'line-width': ['case', selected, 3.5, hovered, 2.5, 1.2],
+        'line-color': white,
+        'line-width': 1.2,
         'line-opacity': ['case', faded, 0.4, 1],
+      },
+    });
+    // Its own layer above every white edge: in one layer a neighbor drawn later paints over the shared border.
+    this.#map.addLayer({
+      id: HIGHLIGHT_LAYER,
+      type: 'line',
+      source: SOURCE,
+      paint: {
+        'line-color': asphalt,
+        'line-width': ['case', selected, 3.5, hovered, 2.5, 0],
+        'line-opacity': ['case', ['any', selected, hovered], 1, 0],
       },
     });
     if (hasGlyphs) {

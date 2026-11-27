@@ -12,7 +12,7 @@ mockModule('i18next', () => ({ default: i18next }));
 
 const { renderPanel } = await loadModules('frontend/js/report/cityReportPanel.js');
 
-const PAGE = { qualityReady: true, typeNames: { NoSidewalk: 'No Sidewalk', Obstacle: 'Obstacle in Path' } };
+const PAGE = { scoresReady: true, qualityReady: true, typeNames: { NoSidewalk: 'No Sidewalk', Obstacle: 'Obstacle in Path' } };
 
 /** A scored neighborhood, every value present, its name and sentence carrying markup. */
 const ROW = {
@@ -89,5 +89,14 @@ describe('renderPanel', () => {
     renderPanel(root, row, PAGE);
     expect([...root.querySelectorAll('dd')].map((dd) => dd.textContent)).toContain('[report:city.no-data]');
     expect([...root.querySelectorAll('dd')].map((dd) => dd.textContent)).not.toContain('[report:city.counting]');
+  });
+
+  test('says nothing about a score while the city\'s are being computed, as the table doesn\'t', () => {
+    const root = panel();
+    const row = { ...ROW, scored: false, score: null, text: { ...ROW.text, score: null } };
+    renderPanel(root, row, { ...PAGE, scoresReady: false });
+    expect(root.querySelector('.reports-panel__score--none')).toBeNull();
+    renderPanel(root, { ...row, hasStreets: false }, PAGE);
+    expect(root.querySelector('.reports-panel__score--none')).toBeNull();
   });
 });

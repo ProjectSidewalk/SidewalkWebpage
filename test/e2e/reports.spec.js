@@ -2,7 +2,8 @@
  * Behavior tests for the city reports page (/reports, #6041). pages.spec.js covers the bare load and axe; this checks
  * what the page does: its map comes up, one selection is shared by the table and the profile panel, the lens recolors
  * the map and moves the table's marked column, the filter hides rows, sorting keeps unscored neighborhoods last, a row
- * leads to its neighborhood report, and on a phone the table becomes cards with nothing scrolling sideways.
+ * leads to its neighborhood report, the sidebar folds on a phone (and stays open without a script), and on a phone the
+ * table becomes cards with nothing scrolling sideways.
  *
  * Nothing here is stubbed: the map runs on the city's own tile archive, so no Mapbox or Google request is made, and the
  * `googleMapsLeaks` fixture fails any test whose page asks Google. The specs read the page's embedded `#reports-data`
@@ -56,13 +57,14 @@ test.describe('/reports', () => {
   test('loads clean, reveals its controls, draws its map and links every neighborhood\'s report',
     async ({page, consoleErrors}) => {
       const data = await openReports(page);
-      await expect(page.locator('#reports-controls')).toBeVisible();
+      await expect(page.locator('#reports-lens-section')).toBeVisible();
+      await expect(page.locator('#reports-filter-section')).toBeVisible();
       const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
       await expect(canvas).toHaveCount(1);
       const box = await canvas.boundingBox();
       expect(box.width * box.height, 'the map canvas has no area').toBeGreaterThan(0);
 
-      const hrefs = await page.locator('#reports-table a[data-city-event="OpenReport"]')
+      const hrefs = await page.locator('#reports-table a.reports-link[data-city-event="OpenReport"]')
         .evaluateAll((links) => links.map((a) => a.getAttribute('href')));
       expect(hrefs).toEqual(expect.arrayContaining(data.rows.map((r) => r.report)));
       expect(hrefs.length).toBe(data.rows.length);
@@ -73,20 +75,30 @@ test.describe('/reports', () => {
       expect(consoleErrors).toEqual([]);
     });
 
-  test('fits the page from 1280px wide, links column included, with nothing to scroll sideways', async ({page}) => {
-    await page.setViewportSize({width: 1280, height: 900});
-    await openReports(page);
-    const scroller = page.locator('#reports-table-scroll');
-    const {client, scroll} = await scroller.evaluate((s) => ({client: s.clientWidth, scroll: s.scrollWidth}));
-    expect(scroll, 'the table scrolls sideways on a desktop').toBeLessThanOrEqual(client);
-    // Nothing to scroll, so no tab stop that scrolls nothing, and no group to announce.
-    await expect(scroller).not.toHaveAttribute('tabindex');
-    await expect(scroller).not.toHaveAttribute('role');
-    // The links column ends inside the scroller, not past its right edge.
-    const link = await page.locator('#reports-table tbody tr:first-child a[data-city-event="OpenReport"]').boundingBox();
-    const box = await scroller.boundingBox();
-    expect(link.x + link.width, 'the links column is cut off').toBeLessThanOrEqual(box.x + box.width);
-  });
+  // Beside the sidebar, a laptop-wide page drops the three columns read least (they stay in the panel); a wide one
+  // shows all ten. Either way the table fits, links column included.
+  for (const {width, demoted} of [{width: 1280, demoted: true}, {width: 1440, demoted: false}]) {
+    test(`fits the page at ${width}px wide beside the sidebar, with nothing to scroll sideways`, async ({page}) => {
+      await page.setViewportSize({width, height: 900});
+      await openReports(page);
+      for (const column of ['imagery', 'labelers', 'density']) {
+        const header = page.locator(`#reports-table thead th[data-column="${column}"]`);
+        if (demoted) await expect(header, column).toBeHidden();
+        else await expect(header, column).toBeVisible();
+      }
+      const scroller = page.locator('#reports-table-scroll');
+      const {client, scroll} = await scroller.evaluate((s) => ({client: s.clientWidth, scroll: s.scrollWidth}));
+      expect(scroll, 'the table scrolls sideways on a desktop').toBeLessThanOrEqual(client);
+      // Nothing to scroll, so no tab stop that scrolls nothing, and no group to announce.
+      await expect(scroller).not.toHaveAttribute('tabindex');
+      await expect(scroller).not.toHaveAttribute('role');
+      // Every link in the links column ends inside the scroller, not past its right edge.
+      const right = await page.locator('#reports-table td[data-column="links"] a')
+        .evaluateAll((links) => Math.max(...links.map((a) => a.getBoundingClientRect().right)));
+      const box = await scroller.boundingBox();
+      expect(right, 'the links column is cut off').toBeLessThanOrEqual(box.x + box.width);
+    });
+  }
 
   // Between the phone layout and a wide desktop (a tablet, or a desktop zoomed to 125-150%) the table may be wider than
   // the page. Then it scrolls inside its own box and the page stays put, whatever in the table is absolutely placed.
@@ -117,12 +129,11 @@ test.describe('/reports', () => {
     const data = await openReports(page);
     test.skip(data.rows.length < 2, 'the city has one neighborhood, so there is nothing else to pick');
     const other = data.rows.find((r) => r.id !== data.selected);
-    const button = page.locator(`#reports-table tr[data-region-id="${other.id}"] .reports-table__select`);
-    await button.click();
+    const row = page.locator(`#reports-table tr[data-region-id="${other.id}"]`);
+    await row.locator('td[data-column="score"]').click();
     await expect(page.locator('#reports-panel-name')).toHaveText(other.name);
     await expect(page.locator('#reports-panel')).toHaveAttribute('data-region-id', String(other.id));
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator(`#reports-table tr[data-region-id="${other.id}"]`)).toHaveClass(/is-selected/);
+    await expect(row).toHaveClass(/is-selected/);
     await expect(page.locator(`#reports-table tr[data-region-id="${data.selected}"]`)).not.toHaveClass(/is-selected/);
     // The panel's own link leads to the same report the row does.
     await expect(page.locator('#reports-panel a[data-city-event="OpenReport"]')).toHaveAttribute('href', other.report);
@@ -130,6 +141,18 @@ test.describe('/reports', () => {
     await expect(page.locator('#reports-panel-status')).toContainText(other.name);
     await expect(page.locator('#reports-panel')).not.toHaveAttribute('aria-live');
     await expect.poll(() => activities).toContain(`Report_City_Select_Region=${other.id}_From=Table`);
+  });
+
+  test('a keyboard selects a neighborhood with its row\'s "Show on map" button', async ({page}) => {
+    const data = await openReports(page);
+    test.skip(data.rows.length < 2, 'the city has one neighborhood, so there is nothing else to pick');
+    const other = data.rows.find((r) => r.id !== data.selected);
+    const button = page.locator(`#reports-table tr[data-region-id="${other.id}"] .reports-table__select`);
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#reports-panel-name')).toHaveText(other.name);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName(new RegExp(other.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   });
 
   test('a lens swaps the legend and the table\'s marked column', async ({page}) => {
@@ -181,13 +204,13 @@ test.describe('/reports', () => {
       `Report_City_Sort_Column=score_Dir=${data.scoresReady ? 'desc' : 'asc'}`]));
   });
 
-  test('a row\'s link opens its neighborhood report', async ({page}) => {
+  test('a row\'s name opens its neighborhood report', async ({page}) => {
     const activities = logged(page);
     const data = await openReports(page);
     const row = data.rows[0];
-    await page.locator(`#reports-table tr[data-region-id="${row.id}"] a[data-city-event="OpenReport"]`).click();
+    await page.locator(`#reports-table tr[data-region-id="${row.id}"] a.reports-table__name`).click();
     await page.waitForURL((url) => url.pathname === new URL(row.report, 'http://x').pathname, {timeout: 90_000});
-    expect(activities).toContain(`Report_City_OpenReport_Region=${row.id}`);
+    await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${row.id}`);
     // The report leads back.
     await expect(page.locator('a[data-report-event="Report_OpenCity"]')).toHaveAttribute('href', '/reports');
   });
@@ -195,6 +218,22 @@ test.describe('/reports', () => {
 
 test.describe('/reports on a phone', () => {
   test.use({viewport: {width: 390, height: 844}});
+
+  test('keeps the title in view and folds the controls behind the strip\'s button', async ({page}) => {
+    const activities = logged(page);
+    await openReports(page);
+    await expect(page.getByRole('heading', {level: 1})).toBeVisible();
+    const toggle = page.locator('#reports-sidebar-toggle');
+    const body = page.locator('#reports-sidebar-body');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toHaveAttribute('aria-controls', 'reports-sidebar-body');
+    await expect(body).toBeHidden();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#reports-lens-section')).toBeVisible();
+    await expect.poll(() => activities).toContain('Report_City_SidebarToggle_Open=true');
+  });
 
   test('the table becomes labeled cards and nothing scrolls sideways', async ({page}) => {
     await openReports(page);
@@ -235,6 +274,7 @@ test.describe('/reports without a script', () => {
     const response = await page.goto('/reports');
     expect(response.status(), `/reports responded ${response.status()}`).toBe(200);
     const data = JSON.parse(await page.locator('#reports-data').textContent());
+    if (process.env.CI) expect(data.rows.length, 'CI\'s seed has no region to list').toBeGreaterThan(0);
     test.skip(data.rows.length === 0, 'this database has no region to list');
     return data;
   }
@@ -245,7 +285,16 @@ test.describe('/reports without a script', () => {
     const header = page.locator('#reports-table thead th[data-column="score"]');
     if (data.scoresReady) await expect(header).toHaveAttribute('aria-sort', 'ascending');
     else await expect(header).not.toHaveAttribute('aria-sort');
-    await expect(page.locator('#reports-controls')).toBeHidden();
+    await expect(page.locator('#reports-lens-section')).toBeHidden();
+    await expect(page.locator('#reports-filter-section')).toBeHidden();
+  });
+
+  test('a phone shows the sidebar open, with no button to open it', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await openWithoutScript(page);
+    await expect(page.locator('#reports-sidebar-toggle')).toBeHidden();
+    await expect(page.locator('#reports-sidebar-body')).toBeVisible();
+    await expect(page.locator('.reports-generated').first()).toBeVisible();
   });
 
   test('a phone shows the cards, labeled, without a row of sort buttons that do nothing', async ({page}) => {

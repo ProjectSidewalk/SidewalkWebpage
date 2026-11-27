@@ -21,6 +21,7 @@ import '../../css/components/info-button.css';
 import '../../css/components/gallery-card.css';
 import '../../css/components/gallery-tags.css';
 import '../../css/components/tool-header.css';
+import '../../css/components/tool-sidebar.css';
 import '../../css/pages/report.css';
 
 /**
@@ -85,6 +86,8 @@ window.appManager.ready(() => {
     onToggle: (open) => log(`Report_SidebarToggle_Open=${open}`),
   });
   toggle.hidden = false;
+  // Only now may the body fold on a phone: without the button there'd be no way to open it.
+  sidebar.classList.add('is-foldable');
 
   shell.addEventListener('click', (e) => {
     const link = /** @type {Element} */ (e.target).closest('[data-report-event]');

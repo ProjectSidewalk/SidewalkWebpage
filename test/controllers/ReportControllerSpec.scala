@@ -149,7 +149,9 @@ class CityReportControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "never build a pano or a Mapbox map, so that viewing it costs no per-load charge" in {
-      val body = contentAsString(reports())
+      val resp = reports()
+      status(resp) mustBe OK
+      val body = contentAsString(resp)
       body must not include "pano-viewer"
       body must not include "StreetViewPanorama"
       body must not include "mapboxgl"

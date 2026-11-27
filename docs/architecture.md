@@ -567,8 +567,14 @@ does. A failed tally leaves the quality columns "still counting"; `SwrCache` log
 The header, table and the first neighborhood's profile are server-rendered; `frontend/js/report/` adds the rest. One
 `CityReportState` holds the selection, hover, lens, filter and sort, and the map (`CityReportMap`, MapLibre over the
 city's PMTiles with the `/regions` polygons, so no billable Google or Mapbox call), the table (`CityReportTable`) and
-the profile panel each draw from it. The table is the keyboard and screen-reader path to the neighborhoods; on a phone
-its rows become labeled cards, and its header row stays as a row of visible sort buttons. Every sentence, date and distance in a row is written by the server (`CityReportFormat`)
+the profile panel each draw from it. The table is the keyboard and screen-reader path to the neighborhoods: a row's
+name opens its report, and its "Show on map" button selects it (a click anywhere else in the row does too); on a phone
+its rows become labeled cards, and its header row stays as a row of visible sort buttons. The page sits in the same
+left-sidebar shell as a neighborhood report (`components/tool-sidebar.css`): the sidebar's head names it ("City
+Report", the page's `<h1>`) and the city, and its body holds the lens and filter controls and the map's legend, folding
+behind the strip's button on a phone. A report's sidebar head reads "Neighborhood Report" and links back up. Beside the
+sidebar, laptop widths (≤1400px) hide the imagery, labelers and density columns, which stay in the panel.
+Every sentence, date and distance in a row is written by the server (`CityReportFormat`)
 and travels to the client in the page's `#reports-data` JSON, so the panel only lays it out.
 
 ### Public label-share surface (`/label/:id`)

@@ -2,24 +2,28 @@
 @import views.html.apps.report as reportViews
 
 @*
- * The report's controls. On a narrow screen the column folds into a strip holding its disclosure button, the same as
- * every other `.page-*` shell; the button is rendered here rather than built in JS so its label goes through Play's
- * i18n. Laid out in the shared filter sidebar's sections, as the AccessScore tool's is. Print and copy-link need
- * JavaScript, so report.js reveals them.
+ * The report's sidebar. The head (and its way back to the City Report, #6041) stays in view on a phone while the
+ * controls fold; the disclosure button is rendered here rather than in JS so its label goes through Play's i18n.
+ * Print and copy-link need JavaScript, so report.js reveals them.
  *
  * @param report The computed report.
  *@
 @(report: NeighborhoodReport)(using messages: Messages, assets: AssetsFinder)
 
-<aside class="page-sidebar report-sidebar" id="report-sidebar" aria-label="@Messages("report.sidebar.label")">
+<aside class="page-sidebar ps-tool-sidebar report-sidebar" id="report-sidebar" aria-label="@Messages("report.sidebar.label")">
+  <div class="ps-tool-sidebar__head">
+    @* Not a heading: the page's <h1> is the neighborhood, in the report itself. *@
+    @common.toolHeader("reports", asHeading = false, name = Some(Messages("report.title.neighborhood")))
+    <p class="ps-tool-sidebar__place ps-tool-sidebar__place--echo">@report.regionName</p>
+    @* The attribute order is asserted by ReportControllerSpec; report.js logs the click from the shell. *@
+    <p class="ps-tool-sidebar__back"><a href="@routes.ReportController.city" data-report-event="Report_OpenCity"><span aria-hidden="true">←</span>@Messages("report.city.breadcrumb")</a></p>
+  </div>
   <button type="button" class="page-sidebar-toggle" id="report-sidebar-toggle" hidden>
     <span class="page-sidebar-toggle-label">@Messages("report.sidebar.label")</span>
     <svg class="page-sidebar-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
   </button>
-  <div class="page-nav report-sidebar__body" id="report-sidebar-body">
-    @* Not a heading (the page's <h1> is the neighborhood); inside the body so it folds away on a narrow screen. *@
-    @common.toolHeader("reports", asHeading = false)
+  <div class="page-nav ps-tool-sidebar__body" id="report-sidebar-body">
     <section class="filter-sidebar__section report-control" id="report-map-controls" aria-labelledby="report-map-title" hidden>
       <div class="filter-sidebar__heading-row">
         <h2 class="filter-sidebar__heading" id="report-map-title">@Messages("report.map.title")</h2>

@@ -1,0 +1,87 @@
+/* A report's left sidebar (#6041), on the city and neighborhood pages. It extends page-shell's .page-sidebar and
+   .page-nav and outranks them by specificity, since Vite doesn't promise load order. */
+
+/* ---- Head: never folds, so the page's heading and the way back stay in view on a phone. ---------------------- */
+
+.ps-tool-sidebar__head {
+  padding: 0 var(--space-md) var(--space-md);
+  border-bottom: 1px solid var(--color-neutral-200);
+}
+
+/* The head draws the rule under the whole block, so the lockup's own is dropped. Pulled down to the line every tool's
+   header starts at (--tool-header-top is the lockup's own property, so it is read on the lockup). */
+.ps-tool-sidebar__head > .ps-tool-header {
+  padding-bottom: 0;
+  margin-top: var(--tool-header-top);
+  margin-bottom: var(--space-xs);
+  border-bottom: 0;
+}
+
+/* The primary font, not the lockup's: a place name can hold digits, which Raleway doesn't render. */
+.ps-tool-sidebar__place {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+  margin: 0;
+  font: var(--text-title-bold);
+  color: var(--color-neutral-900);
+  overflow-wrap: anywhere;
+}
+
+.ps-tool-sidebar__back {
+  margin: var(--space-xs) 0 0;
+  font: var(--text-small-regular);
+}
+
+/* A 24px target (WCAG 2.5.8) on a one-line link. */
+.ps-tool-sidebar__back a {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+  min-height: 24px;
+  color: var(--color-link-200);
+}
+
+/* ---- Body: the controls ------------------------------------------------------------------------------------- */
+
+/* (0,3,0), past the shell's `.page-sidebar .page-nav` (0,2,0) whichever loads last, including its phone rule that
+   hides the body: without the script there is no button to open it, so it stays open (see .is-foldable below). */
+.page-sidebar.ps-tool-sidebar .ps-tool-sidebar__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-md);
+}
+
+/* The strip's disclosure button belongs to narrow screens only, whatever the page's script reveals. */
+@media (width > 768px) {
+  .ps-tool-sidebar .page-sidebar-toggle {
+    display: none;
+  }
+}
+
+/* var(--breakpoint-sm): the sidebar is a strip above the page. */
+@media (width <= 768px) {
+  .ps-tool-sidebar__head {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .ps-tool-sidebar__head > .ps-tool-header {
+    margin-top: 0;
+  }
+
+  /* Said again by the page's own heading just below. */
+  .ps-tool-sidebar__place--echo {
+    display: none;
+  }
+
+  /* Folds only once the script has revealed the button that opens it. */
+  .page-sidebar.ps-tool-sidebar.is-foldable:not(.mobile-visible) .ps-tool-sidebar__body {
+    display: none;
+  }
+
+  .page-sidebar.ps-tool-sidebar .ps-tool-sidebar__body {
+    padding-top: var(--space-sm);
+  }
+}

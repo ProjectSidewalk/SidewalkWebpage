@@ -284,7 +284,7 @@ object CityReportFormat {
    */
   def toGo(row: CityReportRow)(using request: RequestHeader, messages: Messages): Option[String] =
     Option.when(row.hasStreets && !row.scored && row.metersToFloor > 0) {
-      val tenths = math.ceil(inUnits(row.metersToFloor) * 10 - 1e-9) / 10
+      val tenths = math.max(0.1, math.ceil(inUnits(row.metersToFloor) * 10 - 1e-9) / 10)
       messages("report.city.togo", s"${ReportFormat.oneDecimal(tenths)} ${ControllerUtils.distanceUnitWords.abbr}")
     }
 

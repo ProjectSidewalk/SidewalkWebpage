@@ -1,4 +1,4 @@
-@import models.report.{CityReport, CityReportFormat, ReportFormat}
+@import models.report.{CityReport, ReportFormat}
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.JsValue
@@ -8,7 +8,8 @@
 
 @*
  * The city reports page (#6041): every neighborhood in the city on a map and in a table, sharing one selection, with a
- * profile of the selected one beside the map. It says which neighborhoods score best and worst, what lowers each score,
+ * profile of the selected one beside the map. A left sidebar names the page and holds its controls and legend, as a
+ * neighborhood's report does (citySidebar). It says which neighborhoods score best and worst, what lowers each score,
  * how complete the data behind it is, and leads to each neighborhood's own report.
  *
  * Scores are the neighborhood reports' own, so a row and its report can't disagree. While the city's scores or its
@@ -25,123 +26,71 @@
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @city = @{cityName.getOrElse("")}
-@dateLabel(date: java.time.LocalDate) = @{
-  date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.LONG)
-    .withLocale(messages.lang.toLocale))
-}
-@* Printed as its UTC date, like the tally's time below, and restated with it by reports.js in the reader's own zone,
-   so the two can't disagree about the day. *@
-@generatedTime = {<time datetime="@report.generatedAt.toInstant.toString" data-local-date>@dateLabel(report.generatedAt.toLocalDate)</time>}
 @scored = @{report.scoredRows}
-@unscoredCount = @{report.rows.size - scored.size}
-@problemTypes = @{models.label.LabelType.ordered.map(_.name).filter(t => report.rows.exists(_.topTypes.headOption.contains(t)))}
 
 @common.main(commonData, Messages("report.city.seo.title", city), i18Namespaces = Seq("common", "report"), url = "/reports") {
   @common.navbar(commonData, user)
 
-  <main class="reports-page" id="reports-page">
-    <header class="reports-head">
-      @common.toolHeader("reports")
-      <p class="reports-city">
-        @for(name <- cityName) {<span class="reports-city__name">@name</span>}
-        <span class="reports-badge">@Messages("report.beta.badge")</span>
-      </p>
-      @* Html: the message is our own text, and its one argument is the escaped markup above. *@
-      <p class="reports-generated">@Html(Messages("report.generated", generatedTime.body))</p>
-      @* The tally is cached for hours, so the page says how old its quality figures are rather than letting "Generated"
-         speak for them. Printed in UTC; reports.js restates it in the reader's own time zone, as it does "Generated". *@
-      @for(countedAt <- report.qualityCountedAt) {
-        <p class="reports-generated" id="reports-quality-counted">@Messages("report.city.quality.counted") <time datetime="@countedAt.toInstant.toString" data-local-time>@countedAt.format(java.time.format.DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT).withLocale(messages.lang.toLocale)) UTC</time></p>
-      }
-      <p class="reports-lede">@Messages("report.city.lede", city)</p>
-      @if(report.scoresReady) {
-        <p class="reports-summary" id="reports-summary">
-          @if(scored.isEmpty) {
-            @Messages("report.city.summary.none", report.rows.size, report.minCompletionPercent)
-          } else {
-            @if(scored.size == 1) {
-              @Messages("report.city.summary.one", report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name)
+  <div class="page-container reports-shell" id="reports-shell">
+    @reportViews.citySidebar(report, cityName)
+
+    <main class="page-content reports-page" id="reports-page">
+      <header class="reports-head">
+        <p class="reports-lede">@Messages("report.city.lede", city)</p>
+        @if(report.scoresReady) {
+          <p class="reports-summary" id="reports-summary">
+            @if(scored.isEmpty) {
+              @Messages("report.city.summary.none", report.rows.size, report.minCompletionPercent)
             } else {
-              @Messages("report.city.summary", scored.size, report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name, ReportFormat.score(scored.last.score.score.get), scored.last.name)
+              @if(scored.size == 1) {
+                @Messages("report.city.summary.one", report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name)
+              } else {
+                @Messages("report.city.summary", scored.size, report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name, ReportFormat.score(scored.last.score.score.get), scored.last.name)
+              }
             }
-          }
+          </p>
+        } else {
+          <p class="reports-notice" id="reports-scores-computing" role="status">@Messages("report.city.computing.scores")</p>
+        }
+        @if(!report.qualityReady) {
+          <p class="reports-notice" id="reports-quality-computing" role="status">@Messages("report.city.computing.quality")</p>
+        }
+        @* Soft-launched, so the page says it's new and where to send what readers find, as a report does. *@
+        <p class="reports-beta">@Messages("report.beta.note") <a href="mailto:sidewalk@@cs.uw.edu" data-city-event="Feedback">sidewalk@@cs.uw.edu</a></p>
+      </header>
+
+      <div class="reports-top">
+        <div class="reports-map-column">
+          <div class="reports-map" id="reports-map" role="region" aria-label="@Messages("report.city.map.label", city)"></div>
+        </div>
+        @for(row <- report.selected) {
+          <section class="reports-panel" id="reports-panel" data-region-id="@row.regionId" aria-labelledby="reports-panel-name">
+            @reportViews.cityPanel(report, row)
+          </section>
+          @* What a selection announces: the name and its sentence, not every fact the panel redraws. Outside the panel,
+             whose contents are replaced on each selection, so it stays the same live region. *@
+          <p class="sr-only" id="reports-panel-status" role="status"></p>
+        }
+      </div>
+
+      <section class="reports-table-section" aria-labelledby="reports-table-title">
+        <h2 class="reports-table-section__title" id="reports-table-title">@Messages("report.city.table.title")</h2>
+        <p class="reports-table-section__note">
+          @Messages("report.city.legend.bar")
+          @Messages("report.city.legend.floor", report.minCompletionPercent)
         </p>
-      } else {
-        <p class="reports-notice" id="reports-scores-computing" role="status">@Messages("report.city.computing.scores")</p>
-      }
-      @if(!report.qualityReady) {
-        <p class="reports-notice" id="reports-quality-computing" role="status">@Messages("report.city.computing.quality")</p>
-      }
-      @* Soft-launched, so the page says it's new and where to send what readers find, as a report does. *@
-      <p class="reports-beta">@Messages("report.beta.note") <a href="mailto:sidewalk@@cs.uw.edu" data-city-event="Feedback">sidewalk@@cs.uw.edu</a></p>
-    </header>
-
-    @* Shown once the script has wired them: without it they'd be buttons that do nothing. *@
-    <div class="reports-controls" id="reports-controls" hidden>
-      <div class="reports-control">
-        <span class="reports-control__label" id="reports-lens-label">@Messages("report.city.lens.label")</span>
-        <div class="reports-segmented" role="group" aria-labelledby="reports-lens-label">
-          <button type="button" class="reports-segmented__option" data-lens="score" aria-pressed="true">@Messages("report.city.lens.score")</button>
-          <button type="button" class="reports-segmented__option" data-lens="explored" aria-pressed="false">@Messages("report.city.lens.explored")</button>
-          <button type="button" class="reports-segmented__option" data-lens="problem" aria-pressed="false">@Messages("report.city.lens.problem")</button>
+        @* Shown on a phone, above the header row that becomes a row of sort buttons there; like the controls above, only
+           once the script has wired those buttons. *@
+        <p class="reports-sort-label" id="reports-sort-label" aria-hidden="true" hidden>@Messages("report.city.sort.label")</p>
+        @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then, and a
+           named group so a screen reader says what took focus; reports.js drops all three wherever nothing overflows. A
+           group, not a region: the section is already the landmark. *@
+        <div class="reports-table-scroll" id="reports-table-scroll" tabindex="0" role="group" aria-labelledby="reports-table-title">
+          @reportViews.cityTable(report, cityName)
         </div>
-      </div>
-      <div class="reports-control">
-        <span class="reports-control__label" id="reports-filter-label">@Messages("report.city.filter.label")</span>
-        <div class="reports-segmented" role="group" aria-labelledby="reports-filter-label">
-          <button type="button" class="reports-segmented__option" data-filter="all" aria-pressed="true">@Messages("report.city.filter.all", report.rows.size)</button>
-          <button type="button" class="reports-segmented__option" data-filter="scored" aria-pressed="false">@Messages("report.city.filter.scored", scored.size)</button>
-          <button type="button" class="reports-segmented__option" data-filter="unscored" aria-pressed="false">@Messages("report.city.filter.unscored", unscoredCount)</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="reports-top">
-      <div class="reports-map-column">
-        <div class="reports-map" id="reports-map" role="region" aria-label="@Messages("report.city.map.label", city)"></div>
-        <div class="reports-legend" data-lens="score">
-          <span class="reports-legend__ramp" data-ramp="score" aria-hidden="true"></span>
-          <span class="reports-legend__ends"><span>@Messages("report.city.legend.lower")</span><span>@Messages("report.city.legend.higher")</span></span>
-          <span class="reports-legend__item"><span class="reports-legend__swatch reports-legend__swatch--none" aria-hidden="true"></span>@Messages("report.city.legend.unscored")</span>
-        </div>
-        <div class="reports-legend" data-lens="explored" hidden>
-          <span class="reports-legend__ramp" data-ramp="explored" aria-hidden="true"></span>
-          <span class="reports-legend__ends"><span>@Messages("report.city.legend.unexplored")</span><span>@Messages("report.city.legend.explored")</span></span>
-        </div>
-        <div class="reports-legend" data-lens="problem" hidden>
-          @for(labelType <- problemTypes) {
-            <span class="reports-legend__item"><span class="reports-legend__swatch" data-label-type="@labelType" aria-hidden="true"></span>@CityReportFormat.typeName(labelType)</span>
-          }
-          <span class="reports-legend__item"><span class="reports-legend__swatch reports-legend__swatch--none" aria-hidden="true"></span>@Messages("report.city.legend.problem.none")</span>
-        </div>
-      </div>
-      @for(row <- report.selected) {
-        <section class="reports-panel" id="reports-panel" data-region-id="@row.regionId" aria-labelledby="reports-panel-name">
-          @reportViews.cityPanel(report, row)
-        </section>
-        @* What a selection announces: the name and its sentence, not every fact the panel redraws. Outside the panel,
-           whose contents are replaced on each selection, so it stays the same live region. *@
-        <p class="sr-only" id="reports-panel-status" role="status"></p>
-      }
-    </div>
-
-    <section class="reports-table-section" aria-labelledby="reports-table-title">
-      <h2 class="reports-table-section__title" id="reports-table-title">@Messages("report.city.table.title")</h2>
-      <p class="reports-table-section__note">
-        @Messages("report.city.legend.bar")
-        @Messages("report.city.legend.floor", report.minCompletionPercent)
-      </p>
-      @* Shown on a phone, above the header row that becomes a row of sort buttons there; like the controls above, only
-         once the script has wired those buttons. *@
-      <p class="reports-sort-label" id="reports-sort-label" aria-hidden="true" hidden>@Messages("report.city.sort.label")</p>
-      @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then, and a
-         named group so a screen reader says what took focus; reports.js drops all three wherever nothing overflows. A
-         group, not a region: the section is already the landmark. *@
-      <div class="reports-table-scroll" id="reports-table-scroll" tabindex="0" role="group" aria-labelledby="reports-table-title">
-        @reportViews.cityTable(report, cityName)
-      </div>
-    </section>
-  </main>
+      </section>
+    </main>
+  </div>
 
   <script type="application/json" id="reports-data">@jsonForScript(clientData)</script>
   @ViteAssets.stylesheets("reports")

@@ -1,35 +1,38 @@
-/* The city reports page (#6041): the header, the lens and filter controls, the map with the selected neighborhood's
-   profile beside it, and the table of every neighborhood below. A plain page: nothing is pinned and nothing scrolls
-   inside it except the table's sideways overflow on a tablet. Colors that mean something (the score ramp, the label
-   types) are painted by pages/reports.js from the tokens; this sheet only lays the pieces out. */
+/* The city reports page (#6041), in the .page-* shell like a neighborhood's report: a left sidebar with the title, the
+   lens and filter controls and the legend (components/tool-sidebar.css), then the page: the map with the selected
+   neighborhood's profile beside it, and the table of every neighborhood below. Nothing in the page is pinned and
+   nothing scrolls inside it except the table's sideways overflow on a tablet. Colors that mean something (the score
+   ramp, the label types) are painted by pages/reports.js from the tokens; this sheet only lays the pieces out. */
 
-.reports-page {
+.reports-shell {
+  --sidebar-width: 260px;
+}
+
+/* No contents column to make room for, so none of the shell's max-width. `clip` rather than the shell's `hidden`, so
+   the column isn't a scroll container. Doubled up because page-shell.css may load after this. */
+.page-content.reports-page {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  max-width: 1200px;
-  padding: var(--space-lg) var(--space-md) var(--space-xxl);
-  margin: 0 auto;
+  min-width: 0;
+  max-width: none;
+  padding: var(--space-lg) var(--space-lg) var(--space-xxl);
+  overflow: clip;
+}
+
+/* var(--breakpoint-sm) */
+@media (width <= 768px) {
+  .page-content.reports-page {
+    max-width: none;
+    padding-inline: var(--space-md);
+  }
 }
 
 .reports-page a {
   color: var(--color-link-200);
 }
 
-/* ---- Header --------------------------------------------------------------------------------------------------- */
-
-.reports-head > .ps-tool-header {
-  margin-bottom: var(--space-sm);
-}
-
-.reports-city {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  align-items: center;
-  margin: 0;
-  font: var(--text-title-bold);
-}
+/* ---- Sidebar ------------------------------------------------------------------------------------------------- */
 
 .reports-badge {
   display: inline-block;
@@ -40,7 +43,23 @@
   border-radius: var(--border-radius-lg);
 }
 
-.reports-generated,
+.reports-generated {
+  margin: 0 0 var(--space-xxs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* The body's column gap spaces the sections, so the shared sidebar's own section margin would double it. */
+.reports-sidebar__section {
+  margin-bottom: 0;
+}
+
+.reports-sidebar__section[hidden] {
+  display: none;
+}
+
+/* ---- Header --------------------------------------------------------------------------------------------------- */
+
 .reports-beta {
   margin: var(--space-xxs) 0 0;
   font: var(--text-small-regular);
@@ -50,7 +69,7 @@
 .reports-lede,
 .reports-summary {
   max-width: 75ch;
-  margin: var(--space-sm) 0 0;
+  margin: 0 0 var(--space-sm);
   font: var(--text-prose-regular);
 }
 
@@ -67,35 +86,12 @@
   border-left: 4px solid var(--color-banana-700);
 }
 
-/* ---- Controls: two segmented button groups ----------------------------------------------------------------- */
-
-.reports-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-lg);
-  align-items: center;
-  justify-content: space-between;
-}
-
-.reports-controls[hidden] {
-  display: none;
-}
-
-.reports-control {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  align-items: center;
-}
-
-.reports-control__label {
-  font: var(--text-small-bold);
-  color: var(--color-neutral-800);
-}
+/* ---- Controls: two segmented button groups, stacked to fit the sidebar's width -------------------------------- */
 
 .reports-segmented {
-  display: inline-flex;
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-xs);
   overflow: hidden;
   border: 1px solid var(--color-neutral-400);
   border-radius: var(--border-radius);
@@ -107,14 +103,15 @@
   padding: var(--space-xxs) var(--space-sm);
   font: var(--text-small-bold);
   color: var(--color-neutral-800);
+  text-align: left;
   cursor: pointer;
   background: var(--color-neutral-white);
   border: 0;
-  border-right: 1px solid var(--color-neutral-400);
+  border-bottom: 1px solid var(--color-neutral-400);
 }
 
 .reports-segmented__option:last-child {
-  border-right: 0;
+  border-bottom: 0;
 }
 
 .reports-segmented__option[aria-pressed="true"] {
@@ -136,8 +133,8 @@
   align-items: start;
 }
 
-/* var(--breakpoint-sm): the panel goes under the map. */
-@media (width <= 768px) {
+/* var(--breakpoint-md): beside the sidebar, a narrower page leaves the panel too slim, so it goes under the map. */
+@media (width <= 992px) {
   .reports-top {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -161,7 +158,7 @@
   flex-wrap: wrap;
   gap: var(--space-xxs) var(--space-md);
   align-items: center;
-  margin-top: var(--space-xs);
+  margin-top: var(--space-sm);
   font: var(--text-caption-regular);
   color: var(--color-neutral-800);
 }
@@ -404,9 +401,10 @@
   vertical-align: bottom;
 }
 
+/* Tight inline padding: beside the sidebar, ten columns only just fit a 1440px screen. */
 .reports-table th,
 .reports-table td {
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-xs);
 }
 
 /* A row's header is its name, so it reads as a cell, not as the column headers do. */
@@ -431,22 +429,17 @@
 }
 
 .reports-table__sort,
-.reports-table__select {
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: none;
-  border: 0;
-}
-
-.reports-table__select {
+.reports-table__name {
   font: var(--text-small-bold);
   color: var(--color-link-200);
 }
 
+.reports-table tbody tr {
+  cursor: pointer;
+}
+
 .reports-table__sort:focus-visible,
+.reports-table__name:focus-visible,
 .reports-table__select:focus-visible {
   outline: 2px solid var(--color-link-200);
   outline-offset: 2px;
@@ -483,6 +476,23 @@
   white-space: nowrap;
 }
 
+/* A button that reads as the links beside it. */
+.reports-table__select {
+  padding: 0;
+  font: inherit;
+  color: var(--color-link-200);
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.reports-table__select[aria-pressed="true"] {
+  color: var(--color-neutral-800);
+  text-decoration: none;
+}
+
 /* Stacked, one per line, so the column stays narrow. */
 .reports-table td[data-column="links"] .reports-link {
   display: block;
@@ -491,6 +501,17 @@
 /* Only a phone shows it, above the sort buttons the header row becomes there. */
 .reports-sort-label {
   display: none;
+}
+
+/* var(--breakpoint-xl), above var(--breakpoint-sm): beside the sidebar, a laptop-wide page can't fit all ten columns,
+   so the three a reader sorts by least give way. Each stays in the selected neighborhood's panel, and on a phone's
+   cards. */
+@media (768px < width <= 1400px) {
+  .reports-table [data-column="imagery"],
+  .reports-table [data-column="labelers"],
+  .reports-table [data-column="density"] {
+    display: none;
+  }
 }
 
 /* var(--breakpoint-sm): each row becomes a short card, its cells labeled from their column, so nothing scrolls
@@ -595,6 +616,7 @@
 
   .reports-table td[data-column="links"] {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--space-md);
   }
 
