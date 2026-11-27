@@ -29,6 +29,8 @@ const PAGES = [
   // Region 18 (Tyron Park) is the one region in CI's seed (fixtures/ci-seed.sql). By its slug, since the id URL
   // redirects there and the gate checks the page landed where it asked.
   {path: '/report/neighborhood/tyron-park'},
+  // The city's neighborhoods (#6041); its map runs on the city's own tile archive.
+  {path: '/reports'},
   {path: '/labelingGuide'},
   {path: '/labelingGuide/curbRamps'},
   {path: '/labelingGuide/surfaceProblems'},

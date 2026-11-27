@@ -26,5 +26,19 @@
     "unavailable": "No se pudo cargar la tarjeta de esta etiqueta.",
     "loading": "Cargando…",
     "rejected": "Todas las etiquetas de este lugar se marcaron como incorrectas después del último cálculo de las puntuaciones de este informe, así que no hay tarjeta que mostrar."
+  },
+  "city": {
+    "explored": "Explorado",
+    "reviewed": "Revisadas",
+    "latest": "Última observación",
+    "imagery": "Imágenes de",
+    "labelers": "Etiquetadores",
+    "observations": "Observaciones",
+    "streets": "Calles",
+    "open-report": "Abrir informe",
+    "help-explore": "Ayudar a explorar",
+    "not-scored": "Aún sin puntuación",
+    "counting": "Contando todavía",
+    "no-data": "Sin datos"
   }
 }

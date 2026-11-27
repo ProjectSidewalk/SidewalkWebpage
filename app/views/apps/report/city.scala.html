@@ -1,0 +1,98 @@
+@import models.report.{CityReport, ReportFormat}
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import play.api.libs.json.JsValue
+@import views.ViewHelpers.jsonForScript
+@import service.CommonPageData
+@import views.html.apps.report as reportViews
+
+@*
+ * The city reports page (#6041): every neighborhood in the city on a map and in a table, sharing one selection, with a
+ * profile of the selected one beside the map. A left sidebar names the page and holds its controls and legend, as a
+ * neighborhood's report does (citySidebar). It says which neighborhoods score best and worst, what lowers each score,
+ * how complete the data behind it is, and leads to each neighborhood's own report.
+ *
+ * Scores are the neighborhood reports' own, so a row and its report can't disagree. While the city's scores or its
+ * label tally are still being computed, the page lists the neighborhoods without that part and says so.
+ *
+ * @param commonData Per-page config.
+ * @param user       The signed-in user, if any (navbar only).
+ * @param report     The page's rows.
+ * @param cityName   The deployment's formatted name, when known.
+ * @param clientData What the map, table and panel are drawn from; see [[models.report.CityReportClientData]].
+ *@
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole], report: CityReport, cityName: Option[String],
+    clientData: JsValue
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@city = @{cityName.getOrElse("")}
+@scored = @{report.scoredRows}
+
+@common.main(commonData, Messages("report.city.seo.title", city), i18Namespaces = Seq("common", "report"), url = "/reports") {
+  @common.navbar(commonData, user)
+
+  <div class="page-container reports-shell" id="reports-shell">
+    @reportViews.citySidebar(report, cityName)
+
+    <main class="page-content reports-page" id="reports-page">
+      <header class="reports-head">
+        <p class="reports-lede">@Messages("report.city.lede", city)</p>
+        @if(report.scoresReady) {
+          <p class="reports-summary" id="reports-summary">
+            @if(scored.isEmpty) {
+              @Messages("report.city.summary.none", report.rows.size, report.minCompletionPercent)
+            } else {
+              @if(scored.size == 1) {
+                @Messages("report.city.summary.one", report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name)
+              } else {
+                @Messages("report.city.summary", scored.size, report.rows.size, ReportFormat.score(scored.head.score.score.get), scored.head.name, ReportFormat.score(scored.last.score.score.get), scored.last.name)
+              }
+            }
+          </p>
+        } else {
+          <p class="reports-notice" id="reports-scores-computing" role="status">@Messages("report.city.computing.scores")</p>
+        }
+        @if(!report.qualityReady) {
+          <p class="reports-notice" id="reports-quality-computing" role="status">@Messages("report.city.computing.quality")</p>
+        }
+        @* Soft-launched, so the page says it's new and where to send what readers find, as a report does. *@
+        <p class="reports-beta">@Messages("report.beta.note") <a href="mailto:sidewalk@@cs.uw.edu" data-city-event="Feedback">sidewalk@@cs.uw.edu</a></p>
+      </header>
+
+      <div class="reports-top">
+        <div class="reports-map-column">
+          <div class="reports-map" id="reports-map" role="region" aria-label="@Messages("report.city.map.label", city)"></div>
+        </div>
+        @for(row <- report.selected) {
+          <section class="reports-panel" id="reports-panel" data-region-id="@row.regionId" aria-labelledby="reports-panel-name">
+            @reportViews.cityPanel(report, row)
+          </section>
+          @* What a selection announces: the name and its sentence, not every fact the panel redraws. Outside the panel,
+             whose contents are replaced on each selection, so it stays the same live region. *@
+          <p class="sr-only" id="reports-panel-status" role="status"></p>
+        }
+      </div>
+
+      <section class="reports-table-section" aria-labelledby="reports-table-title">
+        <h2 class="reports-table-section__title" id="reports-table-title">@Messages("report.city.table.title")</h2>
+        <p class="reports-table-section__note">
+          @Messages("report.city.legend.bar")
+          @Messages("report.city.legend.floor", report.minCompletionPercent)
+        </p>
+        @* Shown on a phone, above the header row that becomes a row of sort buttons there; like the controls above, only
+           once the script has wired those buttons. *@
+        <p class="reports-sort-label" id="reports-sort-label" aria-hidden="true" hidden>@Messages("report.city.sort.label")</p>
+        @* Scrolls sideways only where the table is wider than the page. Focusable so a keyboard can scroll it then, and a
+           named group so a screen reader says what took focus; reports.js drops all three wherever nothing overflows. A
+           group, not a region: the section is already the landmark. *@
+        <div class="reports-table-scroll" id="reports-table-scroll" tabindex="0" role="group" aria-labelledby="reports-table-title">
+          @reportViews.cityTable(report, cityName)
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="application/json" id="reports-data">@jsonForScript(clientData)</script>
+  @ViteAssets.stylesheets("reports")
+  <script type="module" src='@assets.path("build/js/reports.js")'></script>
+}

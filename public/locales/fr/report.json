@@ -26,5 +26,19 @@
     "unavailable": "Impossible de charger la carte de cette étiquette.",
     "loading": "Chargement…",
     "rejected": "Toutes les étiquettes de ce lieu ont été marquées incorrectes après le dernier calcul des scores de ce rapport : il n'y a donc pas de carte à afficher."
+  },
+  "city": {
+    "explored": "Exploré",
+    "reviewed": "Vérifiées",
+    "latest": "Dernière observation",
+    "imagery": "Images de",
+    "labelers": "Étiqueteurs",
+    "observations": "Observations",
+    "streets": "Rues",
+    "open-report": "Ouvrir le rapport",
+    "help-explore": "Aider à explorer",
+    "not-scored": "Pas encore de score",
+    "counting": "Comptage en cours",
+    "no-data": "Aucune donnée"
   }
 }

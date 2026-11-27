@@ -11,8 +11,8 @@ class ToolHeaderViewSpec extends SidewalkSpec with ViewSpecFixtures {
 
   private val tools = Seq("accessscore", "gallery", "labelmap", "reports")
 
-  private def render(tool: String, asHeading: Boolean = true)(using Messages): String =
-    views.html.common.toolHeader(tool, asHeading).body
+  private def render(tool: String, asHeading: Boolean = true, name: Option[String] = None)(using Messages): String =
+    views.html.common.toolHeader(tool, asHeading, name).body
 
   /** The name as rendered, whichever element holds it. */
   private def nameIn(body: String): String =
@@ -55,6 +55,15 @@ class ToolHeaderViewSpec extends SidewalkSpec with ViewSpecFixtures {
       val plain = render("reports", asHeading = false)
       plain must not include "<h1"
       plain must include("<p class=\"ps-tool-header__name\">")
+    }
+
+    "show a page's own words under the tool's mark when given them, as a heading or not" in {
+      val heading = render("reports", name = Some("City Report"))
+      heading must include("<h1 class=\"ps-tool-header__name\">City Report</h1>")
+      heading must include("images/logos/tools/reports")
+      val plain = render("reports", asHeading = false, name = Some("Neighborhood Report"))
+      plain must include("<p class=\"ps-tool-header__name\">Neighborhood Report</p>")
+      plain must not include "<h1"
     }
 
     "translate the ordinary words and keep the wordmark as written" in {

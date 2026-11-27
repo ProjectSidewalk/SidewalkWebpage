@@ -1,0 +1,480 @@
+/**
+ * Behavior tests for the city reports page (/reports, #6041). pages.spec.js covers the bare load and axe; this checks
+ * what the page does: its map comes up, one selection is shared by the table and the profile panel, the lens recolors
+ * the map and moves the table's marked column, the filter hides rows, sorting keeps unscored neighborhoods last, a row
+ * leads to its neighborhood report, the sidebar folds on a phone (and stays open without a script), and on a phone the
+ * table becomes cards with nothing scrolling sideways.
+ *
+ * Nothing here is stubbed: the map runs on the city's own tile archive, so no Mapbox or Google request is made, and the
+ * `googleMapsLeaks` fixture fails any test whose page asks Google. The specs read the page's embedded `#reports-data`
+ * JSON to learn what the server put on it, so they run against any dev city and against CI's one-region seed,
+ * skipping (with a reason) what a city with too few neighborhoods can't show.
+ */
+const {test, expect, waitForAppReady} = require('./fixtures');
+
+/**
+ * Loads the page and reads what the server drew it from. The first load after a deploy may wait out AccessScore's
+ * cold start, so the test gets triple the usual time.
+ * @param {import('@playwright/test').Page} page - The test's page.
+ * @returns {Promise<Record<string, any>>} The page's `#reports-data` JSON.
+ */
+async function openReports(page) {
+  test.slow();
+  const response = await page.goto('/reports');
+  expect(response.status(), `/reports responded ${response.status()}`).toBe(200);
+  await waitForAppReady(page);
+  const data = await page.evaluate(() => JSON.parse(document.getElementById('reports-data').textContent));
+  if (process.env.CI) expect(data.rows.length, 'CI\'s seed has no region to list').toBeGreaterThan(0);
+  test.skip(data.rows.length === 0, 'this database has no region to list');
+  return data;
+}
+
+/**
+ * @param {import('@playwright/test').Page} page - A loaded page.
+ * @returns {Promise<number[]>} The visible rows' region ids, top to bottom.
+ */
+function visibleRowIds(page) {
+  return page.locator('#reports-table tbody tr:not([hidden])')
+    .evaluateAll((rows) => rows.map((r) => Number(r.dataset.regionId)));
+}
+
+/**
+ * Collects what the page logs, as the activity strings it posts.
+ * @param {import('@playwright/test').Page} page - The test's page, before it loads.
+ * @returns {string[]} Filled as the page logs.
+ */
+function logged(page) {
+  const activities = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('/userapi/logWebpageActivity')) activities.push(JSON.parse(request.postData()));
+  });
+  return activities;
+}
+
+test.describe('/reports', () => {
+  test.use({viewport: {width: 1440, height: 900}});
+
+  test('loads clean, reveals its controls, draws its map and links every neighborhood\'s report',
+    async ({page, consoleErrors}) => {
+      const data = await openReports(page);
+      await expect(page.locator('#reports-lens-section')).toBeVisible();
+      await expect(page.locator('#reports-filter-section')).toBeVisible();
+      const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
+      await expect(canvas).toHaveCount(1);
+      const box = await canvas.boundingBox();
+      expect(box.width * box.height, 'the map canvas has no area').toBeGreaterThan(0);
+
+      const hrefs = await page.locator('#reports-table a.reports-link[data-city-event="OpenReport"]')
+        .evaluateAll((links) => links.map((a) => a.getAttribute('href')));
+      expect(hrefs).toEqual(expect.arrayContaining(data.rows.map((r) => r.report)));
+      expect(hrefs.length).toBe(data.rows.length);
+      // The panel opens on the server's choice.
+      await expect(page.locator('#reports-panel-name')).toHaveText(data.rows.find((r) => r.id === data.selected).name);
+      // Settle window for late async work: the polygons, the basemap's first tiles.
+      await page.waitForTimeout(1000);
+      expect(consoleErrors).toEqual([]);
+    });
+
+  // Beside the sidebar, a laptop-wide page drops the three columns read least (they stay in the panel); a wide one
+  // shows all ten. Either way the table fits, links column included.
+  for (const {width, demoted} of [{width: 1280, demoted: true}, {width: 1440, demoted: false}]) {
+    test(`fits the page at ${width}px wide beside the sidebar, with nothing to scroll sideways`, async ({page}) => {
+      await page.setViewportSize({width, height: 900});
+      await openReports(page);
+      for (const column of ['imagery', 'labelers', 'density']) {
+        const header = page.locator(`#reports-table thead th[data-column="${column}"]`);
+        if (demoted) await expect(header, column).toBeHidden();
+        else await expect(header, column).toBeVisible();
+      }
+      const scroller = page.locator('#reports-table-scroll');
+      const {client, scroll} = await scroller.evaluate((s) => ({client: s.clientWidth, scroll: s.scrollWidth}));
+      expect(scroll, 'the table scrolls sideways on a desktop').toBeLessThanOrEqual(client);
+      // Nothing to scroll, so no tab stop that scrolls nothing, and no group to announce.
+      await expect(scroller).not.toHaveAttribute('tabindex');
+      await expect(scroller).not.toHaveAttribute('role');
+      // Every link in the links column ends inside the scroller, not past its right edge.
+      const right = await page.locator('#reports-table td[data-column="links"] a')
+        .evaluateAll((links) => Math.max(...links.map((a) => a.getBoundingClientRect().right)));
+      const box = await scroller.boundingBox();
+      expect(right, 'the links column is cut off').toBeLessThanOrEqual(box.x + box.width);
+    });
+  }
+
+  // Between the phone layout and a wide desktop (a tablet, or a desktop zoomed to 125-150%) the table may be wider than
+  // the page. Then it scrolls inside its own box and the page stays put, whatever in the table is absolutely placed.
+  test('scrolls only the table from 769 to 1199px, and names the scroller where it is a tab stop', async ({page}) => {
+    await page.setViewportSize({width: 769, height: 900});
+    await openReports(page);
+    const scroller = page.locator('#reports-table-scroll');
+    const title = (await page.locator('#reports-table-title').textContent()).trim();
+    for (const width of [769, 900, 1016, 1100]) {
+      await page.setViewportSize({width, height: 900});
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, `the page scrolls sideways at ${width}px`).toBeLessThanOrEqual(0);
+      const scrolls = await scroller.evaluate((s) => s.scrollWidth > s.clientWidth);
+      if (scrolls) {
+        // A keyboard can scroll it, and a screen reader says what took focus.
+        await expect(scroller, `${width}px`).toHaveAttribute('tabindex', '0');
+        await expect(scroller, `${width}px`).toHaveRole('group');
+        await expect(scroller, `${width}px`).toHaveAccessibleName(title);
+      } else {
+        await expect(scroller, `${width}px`).not.toHaveAttribute('tabindex');
+        await expect(scroller, `${width}px`).not.toHaveAttribute('role');
+      }
+    }
+  });
+
+  test('picking a neighborhood in the table shows it in the panel and marks its row', async ({page}) => {
+    const activities = logged(page);
+    const data = await openReports(page);
+    test.skip(data.rows.length < 2, 'the city has one neighborhood, so there is nothing else to pick');
+    const other = data.rows.find((r) => r.id !== data.selected);
+    const row = page.locator(`#reports-table tr[data-region-id="${other.id}"]`);
+    await row.locator('td[data-column="score"]').click();
+    await expect(page.locator('#reports-panel-name')).toHaveText(other.name);
+    await expect(page.locator('#reports-panel')).toHaveAttribute('data-region-id', String(other.id));
+    await expect(row).toHaveClass(/is-selected/);
+    await expect(page.locator(`#reports-table tr[data-region-id="${data.selected}"]`)).not.toHaveClass(/is-selected/);
+    // The panel's own link leads to the same report the row does.
+    await expect(page.locator('#reports-panel a[data-city-event="OpenReport"]')).toHaveAttribute('href', other.report);
+    // A screen reader hears the pick once, by name, rather than the whole panel again.
+    await expect(page.locator('#reports-panel-status')).toContainText(other.name);
+    await expect(page.locator('#reports-panel')).not.toHaveAttribute('aria-live');
+    await expect.poll(() => activities).toContain(`Report_City_Select_Region=${other.id}_From=Table`);
+  });
+
+  test('keeps the map and panel in view over a long table, and a focused row control clear of them', async ({page}) => {
+    await openReports(page);
+    // Room to scroll however few neighborhoods the city has.
+    await page.evaluate(() => {
+      const spacer = document.createElement('div');
+      spacer.style.height = '3000px';
+      document.getElementById('reports-page').append(spacer);
+    });
+    // At 1440x900 the tallest profile leaves the table most of the window, so the band is pinned.
+    await expect(page.locator('#reports-shell')).toHaveClass(/is-stickable/);
+    const band = page.locator('.reports-top');
+    const navBottom = await page.locator('#header').evaluate((h) => h.getBoundingClientRect().bottom);
+    // Mid-spacer, not the bottom: at the column's end a sticky box leaves with it.
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await expect.poll(() => band.evaluate((b) => Math.round(b.getBoundingClientRect().top))).toBe(Math.round(navBottom));
+
+    // A row scrolled under the band, then its "Show on map" focused: it must land below the band, not behind it.
+    const button = page.locator('#reports-table tbody tr .reports-table__select').first();
+    await page.evaluate(() => {
+      const bandBottom = document.querySelector('.reports-top').getBoundingClientRect().bottom;
+      const row = document.querySelector('#reports-table tbody tr');
+      window.scrollBy(0, row.getBoundingClientRect().top - (bandBottom - 40));
+    });
+    await button.focus();
+    const [bandBottom, buttonTop] = await page.evaluate(() => [
+      document.querySelector('.reports-top').getBoundingClientRect().bottom,
+      document.querySelector('#reports-table tbody tr .reports-table__select').getBoundingClientRect().top,
+    ]);
+    expect(buttonTop).toBeGreaterThanOrEqual(bandBottom);
+  });
+
+  test('a keyboard selects a neighborhood with its row\'s "Show on map" button', async ({page}) => {
+    const data = await openReports(page);
+    test.skip(data.rows.length < 2, 'the city has one neighborhood, so there is nothing else to pick');
+    const other = data.rows.find((r) => r.id !== data.selected);
+    const button = page.locator(`#reports-table tr[data-region-id="${other.id}"] .reports-table__select`);
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#reports-panel-name')).toHaveText(other.name);
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName(new RegExp(other.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  });
+
+  test('hovering a shape previews it in the panel, leaving the map brings the selection back, and a click selects it',
+    async ({page}) => {
+      const activities = logged(page);
+      const data = await openReports(page);
+      const panel = page.locator('#reports-panel');
+      const name = page.locator('#reports-panel-name');
+      const selectedName = await name.textContent();
+      const canvas = page.locator('#reports-map canvas.maplibregl-canvas');
+      /** @param {{fx: number, fy: number}} at - A point as fractions of the canvas, which page scrolling can't stale. */
+      const pointOn = async ({fx, fy}) => {
+        await canvas.scrollIntoViewIfNeeded();
+        const b = await canvas.boundingBox();
+        return {x: b.x + b.width * fx, y: b.y + b.height * fy};
+      };
+
+      // Which shape sits where depends on the city, so sweep a grid until the pointer previews one other than the
+      // selection; the sweep also waits out the map's load, before which nothing answers a hover.
+      let point = null;
+      await expect.poll(async () => {
+        for (const fx of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+          for (const fy of [0.5, 0.35, 0.65, 0.2, 0.8]) {
+            const at = await pointOn({fx, fy});
+            await page.mouse.move(at.x, at.y);
+            if (await panel.getAttribute('data-previewing') !== null) {
+              point = {fx, fy};
+              return true;
+            }
+          }
+        }
+        return false;
+      }, {timeout: 20_000}).toBe(true);
+
+      const id = Number(await panel.getAttribute('data-region-id'));
+      const row = data.rows.find((r) => r.id === id);
+      await expect(name).toHaveText(row.name);
+      await expect(page.locator('.maplibregl-popup')).toHaveCount(0);
+
+      // Off the map, the panel goes back to the selection.
+      const box = await page.locator('#reports-table').boundingBox();
+      await page.mouse.move(box.x + 4, box.y + 4);
+      await expect(name).toHaveText(selectedName);
+      await expect(panel).not.toHaveAttribute('data-previewing');
+
+      // A click selects it, so it stays once the pointer leaves.
+      let at = await pointOn(point);
+      await page.mouse.click(at.x, at.y);
+      await expect(name).toHaveText(row.name);
+      await expect(panel).not.toHaveAttribute('data-previewing');
+      at = await pointOn({fx: 0.999, fy: 0.999});
+      await page.mouse.move(at.x + 40, at.y + 40);
+      await expect(name).toHaveText(row.name);
+      await expect(page.locator(`#reports-table tr[data-region-id="${id}"] .reports-table__select`))
+        .toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('.maplibregl-popup')).toHaveCount(0);
+      await expect.poll(() => activities).toContain(`Report_City_Select_Region=${id}_From=Map`);
+      expect(activities.filter((a) => /Hover/i.test(a))).toEqual([]);
+
+      // The panel's button, above everything else said about it, opens its report.
+      await panel.locator('a.button[data-city-event="OpenReport"]').click();
+      await page.waitForURL((url) => url.pathname === new URL(row.report, 'http://x').pathname, {timeout: 90_000});
+      await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${id}`);
+    });
+
+  test('hovering a table row leaves the panel on the selection', async ({page}) => {
+    const data = await openReports(page);
+    const other = data.rows.find((r) => r.id !== data.selected);
+    test.skip(!other, 'the city has one neighborhood');
+    const selectedName = await page.locator('#reports-panel-name').textContent();
+    await page.locator(`#reports-table tr[data-region-id="${other.id}"] td[data-column="score"]`).hover();
+    await expect(page.locator(`#reports-table tr[data-region-id="${other.id}"]`)).toHaveClass(/is-hovered/);
+    await expect(page.locator('#reports-panel-name')).toHaveText(selectedName);
+    await expect(page.locator('#reports-panel')).not.toHaveAttribute('data-previewing');
+  });
+
+  test('the panel fits every neighborhood unscrolled, at one height, with its report button at the top',
+    async ({page}) => {
+      await openReports(page);
+      const sizes = await page.evaluate(() => {
+        const panel = document.getElementById('reports-panel');
+        return [...document.querySelectorAll('#reports-table .reports-table__select')].map((button) => {
+          /** @type {HTMLElement} */ (button).click();
+          const open = panel.querySelector('a.button[data-city-event="OpenReport"]');
+          const why = panel.querySelector('.reports-panel__why');
+          return {
+            id: panel.dataset.regionId,
+            overflow: panel.scrollHeight - panel.clientHeight,
+            height: Math.round(panel.getBoundingClientRect().height),
+            buttonFirst: Boolean(open && why && (open.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING)),
+          };
+        });
+      });
+      expect(sizes.length).toBeGreaterThan(0);
+      for (const size of sizes) {
+        expect(size.overflow, `region ${size.id} scrolls inside the panel`).toBeLessThanOrEqual(0);
+        expect(size.buttonFirst, `region ${size.id}'s report button is not above its sentence`).toBe(true);
+      }
+      expect(new Set(sizes.map((s) => s.height)).size, 'the panel changes height between neighborhoods').toBe(1);
+    });
+
+  test('a lens swaps the legend and the table\'s marked column', async ({page}) => {
+    const activities = logged(page);
+    await openReports(page);
+    const lenses = {score: 'score', explored: 'explored', problem: 'why'};
+    for (const [lens, column] of Object.entries(lenses)) {
+      await page.locator(`button[data-lens="${lens}"]`).click();
+      await expect(page.locator(`button[data-lens="${lens}"]`)).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator(`.reports-legend[data-lens="${lens}"]`)).toBeVisible();
+      await expect(page.locator('.reports-legend:not([hidden])')).toHaveCount(1);
+      await expect(page.locator(`#reports-table thead th[data-column="${column}"]`)).toHaveClass(/is-lens/);
+      await expect(page.locator('#reports-table thead th.is-lens')).toHaveCount(1);
+    }
+    // Score is the lens the page opens on, so only the two changes are logged.
+    await expect.poll(() => activities).toEqual(expect.arrayContaining(
+      ['Report_City_Lens_Explored', 'Report_City_Lens_Problem']));
+  });
+
+  test('the filter hides the rows it leaves out, and sorting by score keeps unscored ones last', async ({page}) => {
+    const activities = logged(page);
+    const data = await openReports(page);
+    const scored = data.rows.filter((r) => r.scored).map((r) => r.id);
+    const unscored = data.rows.filter((r) => !r.scored).map((r) => r.id);
+
+    // The panel follows the filter: a selection the filter hides moves to the first row left showing.
+    const panelShown = async () => {
+      const shown = await visibleRowIds(page);
+      if (shown.length) expect(shown).toContain(Number(await page.locator('#reports-panel').getAttribute('data-region-id')));
+    };
+    await page.locator('button[data-filter="scored"]').click();
+    expect((await visibleRowIds(page)).sort()).toEqual([...scored].sort());
+    await panelShown();
+    await page.locator('button[data-filter="unscored"]').click();
+    expect((await visibleRowIds(page)).sort()).toEqual([...unscored].sort());
+    await panelShown();
+    await page.locator('button[data-filter="all"]').click();
+    expect((await visibleRowIds(page)).length).toBe(data.rows.length);
+
+    const header = page.locator('#reports-table thead th[data-column="score"]');
+    // Above a phone the sort buttons read as header text, without the browser's button border.
+    await expect(header.locator('button[data-sort]')).toHaveCSS('border-top-width', '0px');
+    // With scores, the page opens in Score order, lowest first, and says so; a first click turns it around.
+    const scoreOrder = data.scoresReady && data.rows.some((r) => r.scored);
+    if (scoreOrder) await expect(header).toHaveAttribute('aria-sort', 'ascending');
+    else await expect(header).not.toHaveAttribute('aria-sort');
+    const dirs = scoreOrder ? ['descending', 'ascending'] : ['ascending', 'descending'];
+    for (const dir of dirs) {
+      await header.locator('button[data-sort]').click();
+      await expect(header).toHaveAttribute('aria-sort', dir);
+      const order = await visibleRowIds(page);
+      expect(order.slice(scored.length).sort(), `unscored rows last, ${dir}`).toEqual([...unscored].sort());
+      const scores = order.slice(0, scored.length).map((id) => data.rows.find((r) => r.id === id).score);
+      const sorted = [...scores].sort((a, b) => (dir === 'ascending' ? a - b : b - a));
+      expect(scores, `scored rows ${dir}`).toEqual(sorted);
+    }
+    await expect.poll(() => activities).toEqual(expect.arrayContaining(['Report_City_Filter_Scored',
+      'Report_City_Filter_Unscored', 'Report_City_Filter_All',
+      `Report_City_Sort_Column=score_Dir=${scoreOrder ? 'desc' : 'asc'}`]));
+  });
+
+  test('a row\'s name opens its neighborhood report', async ({page}) => {
+    const activities = logged(page);
+    const data = await openReports(page);
+    const row = data.rows[0];
+    await page.locator(`#reports-table tr[data-region-id="${row.id}"] a.reports-table__name`).click();
+    await page.waitForURL((url) => url.pathname === new URL(row.report, 'http://x').pathname, {timeout: 90_000});
+    await expect.poll(() => activities).toContain(`Report_City_OpenReport_Region=${row.id}`);
+    // The report leads back.
+    await expect(page.locator('a[data-report-event="Report_OpenCity"]')).toHaveAttribute('href', '/reports');
+  });
+});
+
+test.describe('/reports on a phone', () => {
+  test.use({viewport: {width: 390, height: 844}});
+
+  test('keeps the title in view and folds the controls behind the strip\'s button', async ({page}) => {
+    const activities = logged(page);
+    await openReports(page);
+    await expect(page.getByRole('heading', {level: 1})).toBeVisible();
+    const toggle = page.locator('#reports-sidebar-toggle');
+    const body = page.locator('#reports-sidebar-body');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(toggle).toHaveAttribute('aria-controls', 'reports-sidebar-body');
+    await expect(body).toBeHidden();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#reports-lens-section')).toBeVisible();
+    await expect.poll(() => activities).toContain('Report_City_SidebarToggle_Open=true');
+  });
+
+  test('the table becomes labeled cards and nothing scrolls sideways', async ({page}) => {
+    await openReports(page);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, 'the page scrolls sideways').toBeLessThanOrEqual(0);
+    const label = await page.locator('#reports-table tbody tr:first-child td[data-column="explored"]')
+      .evaluate((td) => getComputedStyle(td, '::before').content);
+    expect(label, 'a card cell names its column').not.toBe('none');
+    // The scroller has nothing to scroll here, so it is no tab stop.
+    await expect(page.locator('#reports-table-scroll')).not.toHaveAttribute('tabindex');
+  });
+
+  test('keeps every sort button visible, so focus can be seen and the cards can still be sorted', async ({page}) => {
+    await openReports(page);
+    await expect(page.locator('.reports-sort-label')).toBeVisible();
+    for (const button of await page.locator('#reports-table button[data-sort]').all()) {
+      await expect(button).toBeVisible();
+      const box = await button.boundingBox();
+      expect(box.height, 'a sort button is too small to take a tap').toBeGreaterThanOrEqual(24);
+    }
+    const explored = page.locator('#reports-table thead th[data-column="explored"]');
+    await explored.locator('button').focus();
+    await page.keyboard.press('Enter');
+    await expect(explored).toHaveAttribute('aria-sort', 'ascending');
+  });
+});
+
+test.describe('/reports without a script', () => {
+  test.use({javaScriptEnabled: false});
+
+  /**
+   * Loads the page with scripts off, so no `waitForAppReady`, and reads the data the server embedded.
+   * @param {import('@playwright/test').Page} page - The test's page.
+   * @returns {Promise<Record<string, any>>} The page's `#reports-data` JSON.
+   */
+  async function openWithoutScript(page) {
+    test.slow();
+    const response = await page.goto('/reports');
+    expect(response.status(), `/reports responded ${response.status()}`).toBe(200);
+    const data = JSON.parse(await page.locator('#reports-data').textContent());
+    if (process.env.CI) expect(data.rows.length, 'CI\'s seed has no region to list').toBeGreaterThan(0);
+    test.skip(data.rows.length === 0, 'this database has no region to list');
+    return data;
+  }
+
+  test('the table still says it is in Score order, lowest first', async ({page}) => {
+    await page.setViewportSize({width: 1440, height: 900});
+    const data = await openWithoutScript(page);
+    const header = page.locator('#reports-table thead th[data-column="score"]');
+    if (data.scoresReady && data.rows.some((r) => r.scored)) await expect(header).toHaveAttribute('aria-sort', 'ascending');
+    else await expect(header).not.toHaveAttribute('aria-sort');
+    await expect(page.locator('#reports-lens-section')).toBeHidden();
+    await expect(page.locator('#reports-filter-section')).toBeHidden();
+  });
+
+  test('a phone shows the sidebar open, with no button to open it', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await openWithoutScript(page);
+    await expect(page.locator('#reports-sidebar-toggle')).toBeHidden();
+    await expect(page.locator('#reports-sidebar-body')).toBeVisible();
+    await expect(page.locator('.reports-generated').first()).toBeVisible();
+  });
+
+  test('a phone shows the cards, labeled, without a row of sort buttons that do nothing', async ({page}) => {
+    await page.setViewportSize({width: 390, height: 844});
+    await openWithoutScript(page);
+    await expect(page.locator('.reports-sort-label')).toBeHidden();
+    for (const button of await page.locator('#reports-table button[data-sort]').all()) {
+      await expect(button).toBeHidden();
+    }
+    await expect(page.locator('#reports-table tbody tr').first()).toBeVisible();
+    const label = await page.locator('#reports-table tbody tr:first-child td[data-column="explored"]')
+      .evaluate((td) => getComputedStyle(td, '::before').content);
+    expect(label, 'a card cell names its column').not.toBe('none');
+  });
+});
+
+// The server prints the header's times in UTC and the page restates them in the reader's zone, so "Generated" and
+// "last counted" can't disagree about the day. One zone well ahead of UTC and one well behind: whatever the hour, at
+// least one of them is on another day than UTC, so a page that skipped the restatement fails there.
+for (const timezoneId of ['Pacific/Kiritimati', 'Pacific/Pago_Pago']) {
+  test.describe(`/reports in ${timezoneId}`, () => {
+    test.use({timezoneId, viewport: {width: 1440, height: 900}});
+
+    test('restates the header\'s times in the reader\'s own zone', async ({page}) => {
+      await openReports(page);
+      const times = page.locator('.reports-generated time');
+      await expect(times.first()).toHaveAttribute('datetime', /Z$/);
+      const read = await times.evaluateAll((elements, zone) => elements.map((t) => {
+        const at = new Date(t.getAttribute('datetime'));
+        const lang = document.documentElement.lang;
+        // The page's own formats (reports.js): a long date, and util.SHORT_DATE_TIME.
+        const expected = t.hasAttribute('data-local-date')
+          ? at.toLocaleDateString(lang, {dateStyle: 'long', timeZone: zone})
+          : at.toLocaleString(lang, {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric',
+            minute: '2-digit', timeZone: zone});
+        return {text: t.textContent.trim(), expected};
+      }), timezoneId);
+      // "Generated" always; "last counted" once the tally is in.
+      expect(read.length).toBeGreaterThanOrEqual(1);
+      for (const {text, expected} of read) expect(text).toBe(expected);
+    });
+  });
+}

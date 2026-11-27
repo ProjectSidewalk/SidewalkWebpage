@@ -542,6 +542,47 @@ card costs and the street order all follow. The page never shows numbers from tw
 must not pass for AccessScore's own, so a stamp stays in the header and in print, and every score links to the tool
 under the same weights.
 
+### City reports page (`/reports`)
+
+The city's neighborhood reports in one page (#6041), reached from the Tools menu's Reports item on every device, with
+a link back from each report. One row per region in `CityReport` (`models/report/CityReport.scala`, pure code): the
+neighborhood report's own score (`NeighborhoodScore.from`, so the row and the report it opens can't disagree), scored
+only past AccessScore's completion floor (`AccessScoreSpotlight.MinRegionCompletion`); what lowers it, as each scored
+label type's mean signed contribution (`ReportService.contributions`, the report's own), drawn as bars on one scale
+for the whole city; and how much to trust it: explored share, reviewed share, latest observation, median imagery year,
+labelers and observations per explored distance. The bars show only the types that lower a score, per explored street,
+not the score itself: curb ramps, crosswalks and signals raise it and aren't drawn, and slope, which isn't a label type,
+lowers some scores without being in them, so the legend says a longer bar doesn't mean a lower score. The scale comes
+from the scored rows (`CityReport.barScale`); below the floor the bars are drawn as provisional, from the part explored
+so far, shrunk to fit when they pass it, so one barely explored neighborhood can't shrink every scored bar.
+
+`ReportService.cityReport` reads the same `getFullCityScores` cache as the reports. The quality columns come from one
+streamed pass over the city's raw labels (`ApiService.getRawLabels`), folded per region into `CoverageTally`, the
+same fold `Coverage.from` uses for a single report, and cached stale-while-revalidate (`ReportService.QualityCacheKey`,
+fresh an hour, kept twelve). The tally carries the time its pass finished (`CityTallies.countedAt`) and the sidebar
+states it, since it can be hours older than the page. Neither pass blocks the page for long: while scores or the tally
+are cold, it renders its rows without them and says what it is waiting for, rather than answering 503 as a report
+does. A failed tally leaves the quality columns "still counting"; `SwrCache` logs the failure once per attempt.
+
+The header, table and the first neighborhood's profile are server-rendered; `frontend/js/report/` adds the rest. One
+`CityReportState` holds the selection, hover, lens, filter and sort, and the map (`CityReportMap`, MapLibre over the
+city's PMTiles with the `/regions` polygons, so no billable Google or Mapbox call), the table (`CityReportTable`) and
+the profile panel each draw from it. Hovering a shape previews that neighborhood in the panel (a dashed border marks
+it, and leaving the map brings the selection back); a click selects it. Only the map previews, so moving down the
+table doesn't redraw the panel. The panel never scrolls inside: `pages/reports.js` draws every profile once, hidden,
+and holds the panel at the tallest one's height, so a preview never resizes it, and the map stretches to match. On a
+desktop screen at least 800px tall, the map and panel stay pinned while the table scrolls under them, so a pick far
+down a long table is seen, unless that height would take more than 55% of the window. The table is the keyboard and
+screen-reader path to the neighborhoods: a row's name opens its report, and its "Show on map" button selects it (a click
+anywhere else in the row does too); on a phone its rows become labeled cards, and its header row stays as a row of
+visible sort buttons. The page sits in the same
+left-sidebar shell as a neighborhood report (`components/tool-sidebar.css`): the sidebar's head names it ("City
+Report", the page's `<h1>`) and the city, and its body holds the lens and filter controls and the map's legend, folding
+behind the strip's button on a phone. A report's sidebar head reads "Neighborhood Report" and links back up. Beside the
+sidebar, laptop widths (≤1400px) hide the imagery, labelers and density columns, which stay in the panel.
+Every sentence, date and distance in a row is written by the server (`CityReportFormat`)
+and travels to the client in the page's `#reports-data` JSON, so the panel only lays it out.
+
 ### Public label-share surface (`/label/:id`)
 
 A public, account-free share surface (issue #456, `ShareController`) lets a single label be linked externally.

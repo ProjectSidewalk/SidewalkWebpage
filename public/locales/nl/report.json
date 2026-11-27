@@ -26,5 +26,19 @@
     "unavailable": "De kaart van dit label kon niet worden geladen.",
     "loading": "Laden…",
     "rejected": "Alle labels hier zijn als onjuist gemarkeerd nadat de scores van dit rapport voor het laatst zijn berekend, dus er is geen kaart om te tonen."
+  },
+  "city": {
+    "explored": "Bekeken",
+    "reviewed": "Beoordeeld",
+    "latest": "Laatste waarneming",
+    "imagery": "Beelden uit",
+    "labelers": "Labelaars",
+    "observations": "Waarnemingen",
+    "streets": "Straten",
+    "open-report": "Rapport openen",
+    "help-explore": "Help verkennen",
+    "not-scored": "Nog geen score",
+    "counting": "Wordt nog geteld",
+    "no-data": "Geen gegevens"
   }
 }

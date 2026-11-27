@@ -16,9 +16,8 @@
   val value = if (ControllerUtils.isMetric) meters / 1000 else meters * CommonUtils.METERS_TO_MILES
   BigDecimal(value).setScale(1, BigDecimal.RoundingMode.HALF_UP).toDouble
 }
-@monthLabel(date: java.time.LocalDate) = @{
-  date.format(java.time.format.DateTimeFormatter.ofPattern("MMM yyyy", messages.lang.toLocale))
-}
+@* The city reports page dates the same observations, so both read one formatter. *@
+@monthLabel(date: java.time.LocalDate) = @{models.report.CityReportFormat.month(date)}
 @countLink(ids: Seq[Int], fallback: String, label: String) = {
   <a class="report-stat__value" href="@ReportLinks.count(ids, fallback)" data-report-event="Report_OpenGallery">@label</a>
 }

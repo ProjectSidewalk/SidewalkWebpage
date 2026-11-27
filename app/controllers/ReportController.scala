@@ -2,7 +2,7 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import models.auth.DefaultEnv
-import models.report.{ReportClientData, ReportLinks}
+import models.report.{CityReportClientData, ReportClientData, ReportLinks}
 import play.api.Configuration
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.UserAwareRequest
@@ -61,6 +61,28 @@ class ReportController @Inject() (
             case None                           => Future.successful(NotFound(s"No neighborhood found named: $key"))
           }
       }
+    }
+  }
+
+  /**
+   * The city reports page (#6041): every neighborhood on a map and in a table, how each scores and why, and how much
+   * data is behind it, each leading to its report. Served as-is on phones, for the same reasons as a report.
+   *
+   * A 200 unless the regions can't be read. A cold AccessScore cache can still hold the request up to
+   * `AccessScoreService.FullCityColdWait`, as it does for the tool; past that, or if the scores or the label tally
+   * behind the quality columns fail, the page lists the neighborhoods without them and says so.
+   *
+   * @return `Ok` with the page.
+   */
+  def city = cc.securityService.UserAwareAction { implicit request =>
+    for {
+      commonData <- configService.getCommonPageData(request2Messages.lang)
+      report     <- reportService.cityReport
+    } yield {
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_Report_City")
+      val cityName   = commonData.allCityInfo.find(_.cityId == commonData.cityId).map(_.cityNameFormatted)
+      val clientData = CityReportClientData.toJson(report, BasemapController.pageData(basemapService.currentArchive))
+      Ok(views.html.apps.report.city(commonData, request.identity, report, cityName, clientData))
     }
   }
 

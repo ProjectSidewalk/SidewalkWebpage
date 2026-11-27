@@ -1,0 +1,90 @@
+@import controllers.helper.ControllerUtils
+@import models.report.{CityReport, CityReportFormat, CityReportRow, ReportFormat, ReportLinks}
+
+@*
+ * The city reports page's table (#6041): one row per neighborhood, in the page's default order, server-rendered so the
+ * page reads without a script. `CityReportTable.js` only re-sorts, hides and marks these rows; it never builds a cell.
+ * Each cell names its column in `data-label`, which a phone shows beside the value once a row becomes a card.
+ *
+ * @param report   The page.
+ * @param cityName The deployment's formatted name, when known.
+ *@
+@(report: CityReport, cityName: Option[String])(using request: RequestHeader, messages: Messages)
+
+@unit = @{ControllerUtils.distanceUnitWords.abbr}
+@none = {<span aria-hidden="true">—</span><span class="sr-only">@Messages("report.city.value.none")</span>}
+@counting = {<span class="reports-muted">@Messages("report.city.computing.cell")</span>}
+@* The server's order is Score ascending (unscored rows after), so its header says so from the start. *@
+@sortable(column: String, label: String) = {
+  <th scope="col" data-column="@column"@if(column == "score" && report.scoresReady && report.scoredRows.nonEmpty){ aria-sort="ascending"}><button type="button" class="reports-table__sort" data-sort="@column">@label</button></th>
+}
+@quality(row: CityReportRow)(value: models.report.RegionQuality => Option[String]) = {
+  @row.quality.map { q =>
+    @value(q).map { v => <span class="reports-quality__value">@v</span> }.getOrElse(none)
+  }.getOrElse(counting)
+}
+
+<table class="ps-table reports-table" id="reports-table">
+  <caption class="sr-only">@Messages("report.city.table.caption", cityName.getOrElse(""))</caption>
+  <thead>
+    <tr>
+      @sortable("name", Messages("report.city.col.name"))
+      @sortable("score", Messages("report.city.col.score"))
+      <th scope="col" data-column="why">@Messages("report.city.col.why")</th>
+      @sortable("explored", Messages("report.city.col.explored"))
+      @sortable("reviewed", Messages("report.city.col.reviewed"))
+      @sortable("latest", Messages("report.city.col.latest"))
+      @sortable("imagery", Messages("report.city.col.imagery"))
+      @sortable("labelers", Messages("report.city.col.labelers"))
+      @sortable("density", Messages("report.city.col.density", unit))
+      <th scope="col" data-column="links"><span class="sr-only">@Messages("report.city.col.links")</span></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for(row <- report.rows) {
+      <tr data-region-id="@row.regionId"@if(report.selected.exists(_.regionId == row.regionId)){ class="is-selected"}>
+        @* Only the name: a row header is read again before every cell in its row. *@
+        <th scope="row" data-column="name">
+          <a class="reports-table__name" href="@ReportLinks.report(row.slug)" data-city-event="OpenReport">@row.name</a>
+        </th>
+        <td data-column="score" data-label="@Messages("report.city.col.score")">
+          @row.score.score.map { score =>
+            <span class="reports-swatch" data-score="@score" aria-hidden="true"></span><span class="reports-score__value">@ReportFormat.score(score)</span>
+          }.getOrElse {
+            @if(report.scoresReady && row.hasStreets) {<span class="reports-muted">@Messages("report.score.none")</span>} else {@none}
+          }
+        </td>
+        <td data-column="why" data-label="@Messages("report.city.col.why")">
+          <p class="reports-why">@CityReportFormat.why(row, report.scoresReady)</p>
+          @if(row.causes.nonEmpty) {
+            <span class="reports-bar@if(row.provisional){ reports-bar--provisional}" aria-hidden="true">
+              @for((labelType, share) <- report.barShares(row)) {<span class="reports-bar__seg" data-label-type="@labelType" data-share="@share"></span>}
+            </span>
+          }
+        </td>
+        <td data-column="explored" data-label="@Messages("report.city.col.explored")">
+          @if(row.hasStreets) {
+            <span class="reports-explored" aria-hidden="true">
+              <span class="reports-explored__fill@if(!row.scored && row.metersToFloor > 0){ reports-explored__fill--short}" data-share="@row.completionRate"></span>
+              <span class="reports-explored__floor" data-share="@(report.minCompletionPercent / 100.0)"></span>
+            </span>
+            <span class="reports-explored__value">@CityReportFormat.explored(row)</span>
+          } else {@none}
+        </td>
+        <td data-column="reviewed" data-label="@Messages("report.city.col.reviewed")">@quality(row)(_.reviewedPercent.map(p => Messages("report.city.percent", p)))</td>
+        <td data-column="latest" data-label="@Messages("report.city.col.latest")">@quality(row)(_.lastObservation.map(CityReportFormat.month))</td>
+        <td data-column="imagery" data-label="@Messages("report.city.col.imagery")">@quality(row)(_.medianImageryYear.map(_.toString))</td>
+        <td data-column="labelers" data-label="@Messages("report.city.col.labelers")">@quality(row)(q => Some(q.labelers.toString))</td>
+        <td data-column="density" data-label="@Messages("report.city.col.density", unit)">@quality(row)(q => CityReportFormat.density(q).map(ReportFormat.oneDecimal))</td>
+        <td data-column="links">
+          <a class="reports-link" href="@ReportLinks.report(row.slug)" data-city-event="OpenReport" aria-label="@Messages("report.city.link.report.label", row.name)">@Messages("report.city.link.report")</a>
+          @if(row.helpExplore) {
+            <a class="reports-link" href="@ReportLinks.explore(row.regionId)" data-city-event="HelpExplore" aria-label="@Messages("report.city.link.explore.label", row.name)">@Messages("report.city.link.explore")</a>
+          }
+          @* The keyboard's way to select a row: a click anywhere else in it does the same for a pointer. *@
+          <button type="button" class="reports-link reports-table__select" aria-pressed="@report.selected.exists(_.regionId == row.regionId)" aria-label="@Messages("report.city.select.label", row.name)">@Messages("report.city.select")</button>
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

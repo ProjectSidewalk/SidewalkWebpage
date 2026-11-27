@@ -1,0 +1,680 @@
+/* The city reports page (#6041), in the .page-* shell like a neighborhood's report: a left sidebar with the title, the
+   lens and filter controls and the legend (components/tool-sidebar.css), then the page: the map with the selected
+   neighborhood's profile beside it, and the table of every neighborhood below. On a tall desktop screen the map
+   and profile stay pinned while the table scrolls under them; elsewhere nothing is pinned. Colors that mean
+   something (the score ramp, the label types) are painted by pages/reports.js from the tokens; this sheet only lays
+   the pieces out. */
+
+.reports-shell {
+  --sidebar-width: 260px;
+}
+
+/* No contents column to make room for, so none of the shell's max-width. `clip` rather than the shell's `hidden`, so
+   the column isn't a scroll container. Doubled up because page-shell.css may load after this. */
+.page-content.reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-width: 0;
+  max-width: none;
+  padding: var(--space-lg) var(--space-lg) var(--space-xxl);
+  overflow: clip;
+}
+
+/* var(--breakpoint-sm) */
+@media (width <= 768px) {
+  .page-content.reports-page {
+    max-width: none;
+    padding-inline: var(--space-md);
+  }
+}
+
+.reports-page a {
+  color: var(--color-link-200);
+}
+
+/* ---- Sidebar ------------------------------------------------------------------------------------------------- */
+
+.reports-badge {
+  display: inline-block;
+  padding: 0 var(--space-xs);
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-900);
+  background: var(--color-banana-300);
+  border-radius: var(--border-radius-lg);
+}
+
+.reports-generated {
+  margin: 0 0 var(--space-xxs);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* The body's column gap spaces the sections, so the shared sidebar's own section margin would double it. */
+.reports-sidebar__section {
+  margin-bottom: 0;
+}
+
+.reports-sidebar__section[hidden] {
+  display: none;
+}
+
+/* ---- Header --------------------------------------------------------------------------------------------------- */
+
+.reports-beta {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-lede,
+.reports-summary {
+  max-width: 75ch;
+  margin: 0 0 var(--space-sm);
+  font: var(--text-prose-regular);
+}
+
+.reports-summary {
+  font: var(--text-body-bold);
+}
+
+.reports-notice {
+  max-width: 75ch;
+  padding: var(--space-xs) var(--space-sm);
+  margin: var(--space-sm) 0 0;
+  font: var(--text-small-regular);
+  background: var(--color-banana-100);
+  border-left: 4px solid var(--color-banana-700);
+}
+
+/* ---- Controls: two segmented button groups, stacked to fit the sidebar's width -------------------------------- */
+
+.reports-segmented {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-xs);
+  overflow: hidden;
+  border: 1px solid var(--color-neutral-400);
+  border-radius: var(--border-radius);
+}
+
+/* 32px tall, past the 24px a pointer needs (WCAG 2.5.8). */
+.reports-segmented__option {
+  min-height: 32px;
+  padding: var(--space-xxs) var(--space-sm);
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+  text-align: left;
+  cursor: pointer;
+  background: var(--color-neutral-white);
+  border: 0;
+  border-bottom: 1px solid var(--color-neutral-400);
+}
+
+.reports-segmented__option:last-child {
+  border-bottom: 0;
+}
+
+.reports-segmented__option[aria-pressed="true"] {
+  color: var(--color-neutral-white);
+  background: var(--color-asphalt-500);
+}
+
+.reports-segmented__option:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: -2px;
+}
+
+/* ---- Map and panel ------------------------------------------------------------------------------------------ */
+
+.reports-top {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-lg);
+  align-items: stretch;
+}
+
+/* var(--breakpoint-md): beside the sidebar, a narrower page leaves the panel too slim, so it goes under the map. */
+@media (width <= 992px) {
+  .reports-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reports-map {
+    height: 440px;
+  }
+}
+
+/* The map fills its column, which the grid stretches to the panel's height beside it. */
+.reports-map-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.reports-map {
+  flex: 1 1 auto;
+  min-height: 360px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius-lg);
+}
+
+@media (width <= 768px) {
+  .reports-map {
+    height: 320px;
+  }
+}
+
+/* var(--breakpoint-md), on a screen tall enough to leave the table room: the map and profile stay in view while the
+   table scrolls under them, so a pick far down a long table is seen. reports.js clears .is-stickable when the tallest
+   profile would make the band cover too much of the screen. */
+@media (width > 992px) and (height >= 800px) {
+  .reports-shell.is-stickable .reports-top {
+    position: sticky;
+    top: calc(var(--navbar-height) + var(--test-banner-height, 0px));
+    z-index: var(--z-index-sticky);
+    padding-block: var(--space-sm);
+    background: var(--color-neutral-white);
+    border-bottom: 1px solid var(--color-neutral-200);
+  }
+
+  /* A focused link or button in a row scrolls clear of the band (WCAG 2.4.11); reports.js measures it. */
+  .reports-shell.is-stickable .reports-table tbody :is(a, button) {
+    scroll-margin-top:
+      calc(var(--navbar-height) + var(--test-banner-height, 0px) + var(--reports-top-height, 0px) + var(--space-sm));
+  }
+}
+
+.reports-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs) var(--space-md);
+  align-items: center;
+  margin-top: var(--space-sm);
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-legend[hidden] {
+  display: none;
+}
+
+.reports-legend__ramp {
+  display: block;
+  flex: 1 1 100%;
+  height: 10px;
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-legend__ends {
+  display: flex;
+  flex: 1 1 100%;
+  justify-content: space-between;
+}
+
+.reports-legend__item {
+  display: inline-flex;
+  gap: var(--space-xxs);
+  align-items: center;
+}
+
+.reports-legend__swatch {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-legend__swatch--none {
+  background: var(--color-neutral-200);
+  border: 1px solid var(--color-neutral-400);
+}
+
+.reports-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+}
+
+/* Showing the neighborhood under the map's pointer rather than the selected one; leaving the map brings that back. */
+.reports-panel[data-previewing] {
+  border-style: dashed;
+  border-color: var(--color-neutral-500);
+}
+
+.reports-panel__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs) var(--space-sm);
+  align-items: start;
+}
+
+.reports-panel__score-line {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+/* Beside the name, at the top: opening the report is what most readers came to the panel for. */
+.reports-panel__open {
+  white-space: nowrap;
+}
+
+.reports-panel__score {
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.reports-panel__score--none {
+  font: var(--text-small-bold);
+  color: var(--color-neutral-800);
+}
+
+/* The primary font rather than the accent one: neighborhood names can hold digits. */
+.reports-panel__name {
+  margin: 0;
+  font: var(--text-title-bold);
+}
+
+.reports-panel__why {
+  margin: 0;
+  font: var(--text-body-regular);
+}
+
+.reports-panel__causes {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: var(--space-xxs) var(--space-sm);
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.reports-panel__causes li {
+  display: contents;
+}
+
+.reports-panel__cause-name {
+  font: var(--text-small-regular);
+}
+
+/* Two columns of label over value, so seven facts take four lines and the panel fits beside the map unscrolled. */
+.reports-panel__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs) var(--space-md);
+  margin: 0;
+  font: var(--text-small-regular);
+}
+
+.reports-panel__fact dt {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-panel__fact dd {
+  margin: 0;
+}
+
+.reports-panel__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin: 0;
+}
+
+/* ---- Bars and swatches, shared by the panel and the table ----------------------------------------------------- */
+
+.reports-swatch {
+  display: inline-block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-right: var(--space-xxs);
+  vertical-align: middle;
+  background: var(--color-neutral-200);
+  border-radius: 50%;
+}
+
+.reports-swatch--large {
+  width: 20px;
+  height: 20px;
+}
+
+/* One segment per type that lowers the score, in its label color, all on the city's one scale. */
+.reports-bar {
+  display: flex;
+  width: 100%;
+  min-width: 120px;
+  height: 12px;
+  overflow: hidden;
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-bar__seg {
+  display: block;
+  height: 100%;
+}
+
+/* Not a score yet, so it is drawn as a sketch of one. */
+.reports-bar--provisional {
+  opacity: 0.55;
+  outline: 1px dashed var(--color-neutral-700);
+  outline-offset: 1px;
+}
+
+.reports-explored {
+  position: relative;
+  display: inline-block;
+  width: 80px;
+  height: 8px;
+  margin-right: var(--space-xs);
+  vertical-align: middle;
+  background: var(--color-neutral-200);
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-explored__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-asphalt-500);
+  border-radius: var(--border-radius-sm);
+}
+
+.reports-explored__fill--short {
+  background: var(--color-neutral-600);
+}
+
+/* The completion floor: past it, a neighborhood is scored. */
+.reports-explored__floor {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--color-orange-600);
+}
+
+.reports-muted {
+  color: var(--color-neutral-800);
+}
+
+/* ---- Table -------------------------------------------------------------------------------------------------- */
+
+.reports-table-section__title {
+  margin: 0 0 var(--space-xs);
+  font: var(--text-h3-bold);
+}
+
+.reports-table-section__note {
+  max-width: 90ch;
+  margin: 0 0 var(--space-sm);
+  font: var(--text-small-regular);
+  color: var(--color-neutral-800);
+}
+
+/* Positioned so it is the containing block of anything absolutely placed in the table (the links column's sr-only
+   header): otherwise that sits at the table's full width against the page, outside this box's clipping, and widens the
+   whole page wherever the table is wider than it. */
+.reports-table-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.reports-table-scroll:focus-visible {
+  outline: 2px solid var(--color-link-200);
+}
+
+/* No minimum width of its own: the cells' content sets it, so the table fits the page on a desktop and scrolls sideways
+   only where it can't (a tablet). */
+.reports-table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Headers wrap: one long header ("Latest observation") would otherwise set its column wider than its values need. */
+.reports-table thead th {
+  white-space: normal;
+  vertical-align: bottom;
+}
+
+/* Tight inline padding: beside the sidebar, ten columns only just fit a 1440px screen. */
+.reports-table th,
+.reports-table td {
+  padding: var(--space-xs);
+}
+
+/* A row's header is its name, so it reads as a cell, not as the column headers do. */
+.reports-table tbody th {
+  min-width: 140px;
+  font: var(--text-small-regular);
+  white-space: normal;
+  background: none;
+  border-bottom-width: 1px;
+}
+
+.reports-table td[data-column="why"] {
+  min-width: 200px;
+}
+
+.reports-table td[data-column="why"] .reports-why {
+  margin: 0 0 var(--space-xxs);
+}
+
+.reports-table th.is-lens {
+  box-shadow: inset 0 -3px var(--color-asphalt-500);
+}
+
+.reports-table__sort,
+.reports-table__name {
+  font: var(--text-small-bold);
+  color: var(--color-link-200);
+}
+
+.reports-table tbody tr {
+  cursor: pointer;
+}
+
+.reports-table__sort:focus-visible,
+.reports-table__name:focus-visible,
+.reports-table__select:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+/* The arrow says which way the sorted column runs; aria-sort says it to a screen reader. */
+.reports-table th[aria-sort="ascending"] .reports-table__sort::after {
+  content: " ▲";
+}
+
+.reports-table th[aria-sort="descending"] .reports-table__sort::after {
+  content: " ▼";
+}
+
+.reports-why {
+  margin: var(--space-xxs) 0 0;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-800);
+}
+
+.reports-table tbody tr.is-hovered > * {
+  background: var(--color-neutral-100);
+}
+
+.reports-table tbody tr.is-selected > * {
+  background: var(--color-pine-100);
+}
+
+.reports-table tbody tr.is-selected > th {
+  box-shadow: inset 3px 0 var(--color-asphalt-500);
+}
+
+.reports-link {
+  white-space: nowrap;
+}
+
+/* Buttons that read as text: the sort headers, and "Show on map" as the links beside it. */
+.reports-table__sort,
+.reports-table__select {
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+
+.reports-table__select {
+  font: inherit;
+  color: var(--color-link-200);
+  text-decoration: underline;
+}
+
+.reports-table__select[aria-pressed="true"] {
+  color: var(--color-neutral-800);
+  text-decoration: none;
+}
+
+/* Stacked, one per line, so the column stays narrow; each a 24px target (WCAG 2.5.8). */
+.reports-table td[data-column="links"] .reports-link {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
+/* Only a phone shows it, above the sort buttons the header row becomes there. */
+.reports-sort-label {
+  display: none;
+}
+
+/* var(--breakpoint-xl), above var(--breakpoint-sm): beside the sidebar, a laptop-wide page can't fit all ten columns,
+   so the three a reader sorts by least give way. Each stays in the selected neighborhood's panel, and on a phone's
+   cards. */
+@media (768px < width <= 1400px) {
+  .reports-table [data-column="imagery"],
+  .reports-table [data-column="labelers"],
+  .reports-table [data-column="density"] {
+    display: none;
+  }
+}
+
+/* var(--breakpoint-sm): each row becomes a short card, its cells labeled from their column, so nothing scrolls
+   sideways. The header row stays, as a wrapping row of sort buttons, so the table can still be sorted and a keyboard
+   sees where its focus is. */
+@media (width <= 768px) {
+  .reports-sort-label {
+    display: block;
+    margin: 0 0 var(--space-xxs);
+    font: var(--text-small-bold);
+    color: var(--color-neutral-800);
+  }
+
+  .reports-table,
+  .reports-table thead,
+  .reports-table tbody {
+    display: block;
+  }
+
+  .reports-table thead tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-neutral-300);
+  }
+
+  .reports-table thead th {
+    display: block;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+
+  /* Until the script has wired them (CityReportTable marks the table), the sort buttons would do nothing, and each
+     card already names its values, so the row of them stays out of sight and out of the tab order. */
+  .reports-table:not(.is-sortable) thead {
+    display: none;
+  }
+
+  /* Nothing to sort by: the sentence and the links. */
+  .reports-table thead th[data-column="why"],
+  .reports-table thead th[data-column="links"] {
+    display: none;
+  }
+
+  /* 32px tall, past the 24px a pointer needs (WCAG 2.5.8). */
+  .reports-table__sort {
+    min-height: 32px;
+    padding: var(--space-xxs) var(--space-sm);
+    border: 1px solid var(--color-neutral-400);
+    border-radius: var(--border-radius);
+  }
+
+  .reports-table th[aria-sort] .reports-table__sort {
+    border-color: var(--color-asphalt-500);
+  }
+
+  .reports-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-xxs) var(--space-sm);
+    padding: var(--space-sm) var(--space-xs);
+    border-bottom: 1px solid var(--color-neutral-300);
+  }
+
+  /* A card tints as one piece: per-cell tints would leave the grid's gaps white. */
+  .reports-table tbody tr.is-hovered {
+    background: var(--color-neutral-100);
+  }
+
+  .reports-table tbody tr.is-selected {
+    background: var(--color-pine-100);
+    box-shadow: inset 3px 0 var(--color-asphalt-500);
+  }
+
+  .reports-table tbody tr.is-hovered > th,
+  .reports-table tbody tr.is-hovered > td,
+  .reports-table tbody tr.is-selected > th,
+  .reports-table tbody tr.is-selected > td {
+    background: none;
+    box-shadow: none;
+  }
+
+  .reports-table tbody tr[hidden] {
+    display: none;
+  }
+
+  .reports-table tbody th,
+  .reports-table tbody td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .reports-table tbody th,
+  .reports-table td[data-column="why"],
+  .reports-table td[data-column="links"] {
+    grid-column: 1 / -1;
+  }
+
+  .reports-table td[data-column="links"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .reports-table td[data-label]::before {
+    display: block;
+    font: var(--text-caption-semibold);
+    color: var(--color-neutral-800);
+    content: attr(data-label);
+  }
+
+  .reports-table td[data-column="why"]:empty {
+    display: none;
+  }
+}

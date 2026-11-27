@@ -26,5 +26,19 @@
     "unavailable": "Não foi possível carregar o cartão deste rótulo.",
     "loading": "Carregando…",
     "rejected": "Todos os rótulos deste local foram marcados como incorretos depois do último cálculo das pontuações deste relatório, então não há cartão para mostrar."
+  },
+  "city": {
+    "explored": "Explorado",
+    "reviewed": "Revisadas",
+    "latest": "Última observação",
+    "imagery": "Imagens de",
+    "labelers": "Rotuladores",
+    "observations": "Observações",
+    "streets": "Ruas",
+    "open-report": "Abrir relatório",
+    "help-explore": "Ajudar a explorar",
+    "not-scored": "Ainda sem pontuação",
+    "counting": "Ainda contando",
+    "no-data": "Sem dados"
   }
 }

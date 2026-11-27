@@ -43,6 +43,15 @@ trait ReportService {
 
   /** @return Each live region's report address, by region id; see [[ReportSlug]]. */
   def regionSlugs: Future[Map[Int, String]]
+
+  /**
+   * The city reports page (#6041): a row per live region, scored as its neighborhood report scores it, with the labels
+   * behind it tallied. Never holds a request on the city-wide label pass: while either the scores or the tally are
+   * still being computed for the first time, the page comes back with that part marked not ready.
+   *
+   * @return The page's rows.
+   */
+  def cityReport: Future[CityReport]
 }
 
 /**
@@ -77,6 +86,15 @@ object ReportService {
   // between runs, so an hour-old copy is only ever late in saying how many labels there are.
   val DataFreshFor: FiniteDuration = 10.minutes
   val DataMaxAge: FiniteDuration   = 1.hour
+
+  // The city reports page's tally reads every label in the city, so it is kept for hours rather than the report's one,
+  // and a request that finds it cold waits only briefly: the pass keeps running and fills the cache for the next one
+  // (#6041). How long the pass takes on a prod-sized city is unmeasured.
+  val QualityCacheKey: String               = "report:city-quality:v2"
+  val QualityFreshFor: FiniteDuration       = 1.hour
+  val QualityMaxAge: FiniteDuration         = 12.hours
+  val QualityColdWait: FiniteDuration       = 5.seconds
+  val QualityFailureBackoff: FiniteDuration = 5.minutes
 
   /** @return The smallest box holding them, widened by [[EvidencePaddingMeters]], or None with no streets. */
   def evidenceBox(streets: Seq[StreetAccessScoreForApi]): Option[LatLngBBox] =
@@ -332,6 +350,54 @@ class ReportServiceImpl @Inject() (
             )
         }
     }
+
+  def cityReport: Future[CityReport] = {
+    // Started together: the scores can hold the request up to FullCityColdWait on a cold cache, and the rest is cheap.
+    // A failed pass lists the neighborhoods unscored, as a cold one does, rather than costing the page.
+    val scoresF      = accessScoreService.getFullCityScores(BatchSize).recover { case _ => None }
+    val regionsF     = regionService.getAllRegions
+    val completionsF = regionService.getRegionCompletions(Seq.empty)
+    val talliesF     = cityTallies
+    for {
+      slugs       <- regionSlugs
+      regions     <- regionsF
+      completions <- completionsF
+      scores      <- scoresF
+      tallies     <- talliesF
+    } yield CityReport.build(
+      regions.filterNot(_.deleted).map(r => r.regionId -> r.name),
+      slugs,
+      completions,
+      scores,
+      tallies,
+      OffsetDateTime.now(ZoneOffset.UTC)
+    )
+  }
+
+  /**
+   * Every counted label in the city folded into its region's tally, in one streamed pass. Keyed on the API row's region
+   * before it becomes a [[ReportLabel]], which carries none, and counted by [[ReportRules.isCounted]], as the report is.
+   *
+   * @return The tallies, stamped with when the pass finished, or None while a cold cache is still being filled. A failed
+   *         pass is None too, so a database error costs the page its quality columns rather than the page.
+   */
+  private def cityTallies: Future[Option[CityTallies]] =
+    swrCache
+      .staleWhileRevalidateWithin[CityTallies](
+        QualityCacheKey, QualityFreshFor, QualityMaxAge, QualityColdWait, QualityFailureBackoff
+      ) {
+        apiService
+          .getRawLabels(RawLabelFiltersForApi(), BatchSize)
+          .map(l => l.regionId -> ReportLabel.fromApi(l))
+          .filter { case (_, label) => ReportRules.isCounted(label) }
+          .runFold(Map.empty[Int, CoverageTally]) { case (tallies, (regionId, label)) =>
+            tallies.updated(regionId, tallies.getOrElse(regionId, CoverageTally.empty).add(label))
+          }
+          .map(CityTallies(_, OffsetDateTime.now(ZoneOffset.UTC)))
+      }
+      // Not logged here: SwrCache logs each failed pass once, and within its backoff every page view would otherwise
+      // log that same failure again.
+      .recover { case _ => None }
 
   /** Reads the region's rows, fresh from the cache if a recent report already did. */
   private def reportData(regionId: Int, streets: Seq[StreetAccessScoreForApi]): Future[ReportData] =

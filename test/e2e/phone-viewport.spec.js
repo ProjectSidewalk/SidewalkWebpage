@@ -55,6 +55,7 @@ const PAGES = [
   {path: '/routes'},
   {path: '/stories'},
   {path: '/cities', mapbox: true},
+  {path: '/reports'},
   {path: '/labelMap', mapbox: true, loadingOverlay: true},
   {path: '/gallery', loadingOverlay: true},
   {path: '/api'},

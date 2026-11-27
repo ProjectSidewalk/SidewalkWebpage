@@ -279,7 +279,8 @@ GET     /cropImage/:labelType/:labelId                  controllers.ImageControl
 GET     /backupImage/:panoId/metadata                   controllers.ImageController.getBackupImageMetadata(panoId: String)
 GET     /backupImage/:panoId                            controllers.ImageController.serveBackupImage(panoId: String)
 
-# Neighborhood reports (#3889). Public, like the API they are built from.
+# Neighborhood reports (#3889). Public, like the API they are built from. /reports compares a city's neighborhoods (#6041).
+GET     /reports                                        controllers.ReportController.city
 GET     /report/neighborhood/:key                       controllers.ReportController.neighborhood(key: String)
 
 # Lived-experience stories (#4054). Read + media serving are public (the /label/:id share page has no session).
